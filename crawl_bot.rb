@@ -1,24 +1,15 @@
 require_relative './render'
 require_relative './job'
 
-class Worker
-  include Render
-
-  DEATH_THREASHOLD = 10
-  POLLING_SLEEP_TIME = 3
-
+class Worker < Config
   def initialize
     poll
-  end
-
-  def boot_time # use `Time.now.to_i` instead of ec2 api call for testing
-    @instance_boot_time ||= Time.now.to_i# ec2.describe_instances(instance_ids:[self_id]).reservations[0].instances[0].launch_time.to_i
   end
 
   def poll
     until should_stop? do
       puts 'Polling....'
-      sleep rand(POLLING_SLEEP_TIME)
+      sleep rand(polling_sleep_time)
       backlog_poller.poll(
         wait_time_seconds: nil,
         max_number_of_messages: 1,
@@ -27,10 +18,11 @@ class Worker
         begin
           if JSON.parse(msg.body).has_key?('Records')
             puts "\n\nPossible job found:\n\n#{JSON.parse(msg.body)}"
+            byebug
             catch :no_such_job_in_backlog do
-              job = Job.new(msg, backlog_address)
+              job = 'testing'
               run_job(job)
-              puts "finished job:\n #{job.key}\n\n"
+              puts "finished job:"
             end
           else
             sqs.delete_message({
@@ -61,10 +53,10 @@ class Worker
   end
 
   def death_ratio_acheived?
-    death_ratio >= DEATH_THREASHOLD
+    death_ratio >= death_threashold
   end
 
-  def death_ratio
+  def death_ratio #
     counts = [backlog_address, wip_address].map do |board|
       sqs.get_queue_attributes(
         queue_url: board,
@@ -79,23 +71,25 @@ class Worker
   end
 
   def run_job(job)
-    if job.board == backlog_address
-      job.pull_file_from_backlog
-      job.update_status
-      job.unzip_file_and_unpack
-      job.signal_a_e_to_start
-      job.push_file
-      job.transcode_from_video_in
-      job.clean_up_for_next_job
-    else
-      puts "*********************************'\n\
-        job doesn't exist;  from #run_job:\n#{job.key}"
-    end
+    sleep rand(polling_sleep_time)
   end
 
   def self_id # hard code a value here for testing
     @id ||= 'fdasasfd' # HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
   end
+
+  def boot_time # use `Time.now.to_i` instead of ec2 api call for testing
+    @instance_boot_time ||= Time.now.to_i# bot_ec2.describe_instances(
+                              # instance_ids:[self_id]).reservations[0].instances[0].launch_time.to_i
+  end
+
+  def death_threashold
+    ENV['DEATH_RATIO'].to_i # 10
+  end
+
+  def polling_sleep_time
+    ENV['POLLING_SLEEP_TIME'].to_i # 5
+  end
 end
 
-Worker.new
+CrawlBot.new
