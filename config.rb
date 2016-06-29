@@ -7,104 +7,61 @@ require 'byebug'
 require 'logger'
 require 'zip/zip'
 
-class Config
-  class BrokenJobException < Exception; end
+module Config
 
   def wip_poller
-    @w_poller ||= Aws::SQS::QueuePoller.new(wip_address)
+    @wip_poller ||= Aws::SQS::QueuePoller.new(wip_address)
   end
 
   def backlog_poller
-    @b_poller ||= Aws::SQS::QueuePoller.new(backlog_address)
+    @backlog_poller ||= Aws::SQS::QueuePoller.new(backlog_address)
   end
 
   def sqs
-    @sqs_client ||= Aws::SQS::Client.new(credentials: creds)
+    @sqs ||= Aws::SQS::Client.new(credentials: creds)
   end
 
-  def backlog_address
-    @b_address ||= ENV['BACKLOG_ADDRESS']
-  end
-
-  def wip_address
-    @w_address ||= ENV['WIP_ADDRESS']
-  end
-
-  def finished_address
-    @f_address ||= ENV['FINISHED_ADDRESS']
-  end
-
-  def needs_attention_address
-    @n_address ||= ENV['NEEDS_ATTENTION_ADDRESS']
-  end
-
-  def s3
-    @s3 ||= Aws::S3::Client.new(
-      region: region,
-      credentials: creds
-    )
-  end
-
-   def maker_ec2
+  def ec2
     @ec2 ||= Aws::EC2::Client.new(
       region: region,
       credentials: creds)
   end
 
-  def bot_ec2
-    @bot_ec2 ||= Aws::EC2::Client.new(
-      region: region,
-      credentials: bot_creds)
+  def backlog_address
+    @backlog_address ||= ENV['BACKLOG_ADDRESS']
   end
 
-  def creds
-    @c ||= Aws::Credentials.new(
-      ENV['AWS_ACCESS_KEY_ID'],
-      ENV['AWS_SECRET_ACCESS_KEY'])
+  def wip_address
+    @wip_address ||= ENV['WIP_ADDRESS']
   end
 
-  def bots_creds
-    @b_c ||= Aws::Credentials.new(
-      ENV['BOT_MAKER_AWS_ACCESS_KEY_ID'],
-      ENV['AWS_SECRET_ACCESS_KEY'])
+  def finished_address
+    @finished_address ||= ENV['FINISHED_ADDRESS']
   end
 
-  def sqs_queue_url
-    @sqs_url ||= @ENV['SQS_QUEUE_URL']
+  def needs_attention_address
+    @needs_attention_address ||= ENV['NEEDS_ATTENTION_ADDRESS']
   end
 
   def region
-    @region ||= ENV['AWS_REGION']
+    @reqion ||= ENV['AWS_REGION']
   end
 
-  def availability_zones
-    @az ||= bot_ec2.describe_availability_zones.
-                    availability_zones.map(&:zone_name)
-  end
-
-  def bot_creds
-    @bot_creds ||= Aws::Credentials.new(
-      ENV['BOT_MAKER_AWS_ACCESS_KEY_ID'],
-      ENV['BOT_MAKER_AWS_SECRET_ACCESS_KEY'])
-  end
-
-  def sqs
-    @sqs ||= Aws::SQS::Client.new(credentials: bot_creds)
-  end
-
-  def jobs_ratio_denominator
-    @jobs_denom ||= ENV['JOBS_RATIO_DENOMINATOR'].to_i
+  def get_count(board)
+    sqs.get_queue_attributes(
+      queue_url: board,
+      attribute_names: ['ApproximateNumberOfMessages']
+    ).attributes['ApproximateNumberOfMessages'].to_f
   end
 
   def setup_logger
-    @logger_client ||= Logger.new(
+    logger_client ||= Logger.new(
       File.open(File.expand_path('../crawlBot.log', __FILE__), 'a+'))
-    @logger_client.level = Logger::INFO
-    @logger_client
+    logger_client.level = Logger::INFO
+    logger_client
   end
 
-  def logger
-  #   logger.info("\njob started: #{stats.last_message_received_at}\n#{JSON.parse(msg.body)}\n#{msg}\n\n")
-  #  @logger_client ||= setup_logger
+  def logger(msg)
+    logger.info("\n#{Time.now}: #{msg}\n")
   end
 end

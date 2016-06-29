@@ -1,7 +1,9 @@
-require_relative './render'
-require_relative './job'
+require_relative './config'
+# require_relative './job'
 
-class Worker < Config
+class Worker
+  include Config
+
   def initialize
     poll
   end
@@ -84,11 +86,28 @@ class Worker < Config
   end
 
   def death_threashold
-    ENV['DEATH_RATIO'].to_i # 10
+    @death_threashold ||= ENV['DEATH_RATIO'].to_i # 10
   end
 
   def polling_sleep_time
-    ENV['POLLING_SLEEP_TIME'].to_i # 5
+    @polling_sleep_time ||= ENV['POLLING_SLEEP_TIME'].to_i # 5
+  end
+
+  def backlog_poller
+    @backlog_poller ||= Aws::SQS::QueuePoller.new(backlog_address)
+  end
+
+  def s3
+    @s3 ||= Aws::S3::Client.new(
+      region: region,
+      credentials: maker_creds
+    )
+  end
+
+  def creds
+    @creds ||= Aws::Credentials.new(
+      ENV['BOT_AWS_ACCESS_KEY_ID'],
+      ENV['BOT_AWS_SECRET_ACCESS_KEY'])
   end
 end
 
