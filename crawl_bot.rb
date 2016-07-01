@@ -1,7 +1,8 @@
-require_relative './config'
-# require_relative './job'
+require_relative 'config'
+require 'dotenv'
+Dotenv.load(".crawl_bot.env")
 
-class Worker
+class CrawlBot
   include Config
 
   def initialize
@@ -17,21 +18,22 @@ class Worker
         max_number_of_messages: 1,
         visibility_timeout: 10 # keep message invisible long enough to process to wip
       ) do |msg, stats|
+        byebug
         begin
-          if JSON.parse(msg.body).has_key?('Records')
-            puts "\n\nPossible job found:\n\n#{JSON.parse(msg.body)}"
-            byebug
-            catch :no_such_job_in_backlog do
-              job = 'testing'
-              run_job(job)
-              puts "finished job:"
-            end
-          else
+          # if JSON.parse(msg.body).has_key?('Records')
+          #   puts "\n\nPossible job found:\n\n#{JSON.parse(msg.body)}"
+          #   catch :no_such_job_in_backlog do
+          #     job = 'testing'
+          #     run_job(job)
+          #     puts "finished job:"
+          #   end
+          # else
+          puts "body: #{msg.body}"
             sqs.delete_message({
               queue_url: backlog_address,
               receipt_handle: msg.receipt_handle
             })
-          end
+          # end
         rescue JSON::ParserError => e
           puts "Trouble with #{msg.body}:\n____#{e}\n"
         end
@@ -59,15 +61,9 @@ class Worker
   end
 
   def death_ratio #
-    counts = [backlog_address, wip_address].map do |board|
-      sqs.get_queue_attributes(
-        queue_url: board,
-        attribute_names: ['ApproximateNumberOfMessages']
-      ).attributes['ApproximateNumberOfMessages'].to_f
-    end
+    backlog = get_count(backlog_address)
+    wip = get_count(wip_address)
 
-    backlog = counts.first
-    wip = counts.last
     wip = wip <= 0.0 ? 1.0 : wip # guards against irrational values
     backlog / wip
   end
@@ -100,14 +96,14 @@ class Worker
   def s3
     @s3 ||= Aws::S3::Client.new(
       region: region,
-      credentials: maker_creds
+      credentials: creds
     )
   end
 
   def creds
     @creds ||= Aws::Credentials.new(
-      ENV['BOT_AWS_ACCESS_KEY_ID'],
-      ENV['BOT_AWS_SECRET_ACCESS_KEY'])
+      ENV['AWS_ACCESS_KEY_ID'],
+      ENV['AWS_SECRET_ACCESS_KEY'])
   end
 end
 

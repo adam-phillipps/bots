@@ -3,18 +3,24 @@ Dotenv.load
 require 'aws-sdk'
 Aws.use_bundled_cert!
 require 'httparty'
-require 'byebug'
 require 'logger'
-require 'zip/zip'
+require 'byebug'
 
 module Config
-
   def wip_poller
-    @wip_poller ||= Aws::SQS::QueuePoller.new(wip_address)
+    @wip_poller ||= Aws::SQS::QueuePoller.new(
+      credentials: creds,
+      region: region,
+      queue_url: wip_address
+    )
   end
 
   def backlog_poller
-    @backlog_poller ||= Aws::SQS::QueuePoller.new(backlog_address)
+    @backlog_poller ||= Aws::SQS::QueuePoller.new(
+      credentials: creds,
+      region: region,
+      queue_url: backlog_address
+    )
   end
 
   def sqs
@@ -44,7 +50,13 @@ module Config
   end
 
   def region
-    @reqion ||= ENV['AWS_REGION']
+    @region ||= ENV['AWS_REGION']
+  end
+
+  def ec2
+    @ec2 ||= Aws::EC2::Client.new(
+      region: region,
+      credentials: creds)
   end
 
   def get_count(board)
