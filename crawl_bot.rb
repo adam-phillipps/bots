@@ -44,12 +44,7 @@ class CrawlBot
   end
 
   def should_stop?
-    # if you're the last one, (in active state) don't kill yourself
-    if hour_mark_approaches?
-      death_ratio_acheived? ? true : false
-    else
-      false
-    end
+    if hour_mark_approaches? ? death_ratio_acheived? : false
   end
 
   def hour_mark_approaches?
