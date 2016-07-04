@@ -21,7 +21,6 @@ class CrawlBot
         visibility_timeout: 10 # keep message invisible long enough to process to wip
       ) do |msg, stats|
         begin
-          byebug
           body = JSON.parse(msg.body)
           if possible_valid_job?(body)
             puts "\n\nPossible job found:\n#{body}"

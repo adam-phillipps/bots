@@ -23,7 +23,7 @@ class BotMaker
     def adjusted_spawning_ratio
       backlog = get_count(backlog_address)
       wip = get_count(bot_counter_address)
-      byebug
+
       (((1.0 / jobs_ratio_denominator) * backlog) - wip).ceil
     end
 
@@ -46,7 +46,7 @@ class BotMaker
 
     def bot_image
       @bot_image ||= ec2.describe_images(
-        filters: [{ name: 'tag:Name', values: [ENV[AMI_NAME]] }]
+        filters: [{ name: 'tag:Name', values: [ENV['AMI_NAME']] }]
       ).images.first
     end
 
