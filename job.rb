@@ -22,7 +22,7 @@ class Job
   end
 
   def run
-    system("java -jar google-scraper.jar #{job.params.join(' ')}")
+    system("java -jar google-scraper.jar #{params.join(' ')}")
   end
 
   def next_board
