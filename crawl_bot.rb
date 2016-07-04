@@ -1,6 +1,7 @@
-require_relative 'config'
 require 'dotenv'
 Dotenv.load(".crawl_bot.env")
+require_relative 'config'
+require_relative 'job'
 require 'json'
 
 class CrawlBot
@@ -23,7 +24,7 @@ class CrawlBot
       ) do |msg, stats|
         begin
           body = JSON.parse(msg.body)
-          if possible_valid_job?(body)
+          if valid_job?(body)
             puts "\n\nPossible job found:\n#{body}"
             catch :no_such_job_in_backlog do
               job = Job.new(msg, backlog_address)
@@ -62,8 +63,8 @@ class CrawlBot
     ec2.terminate_instances(ids: [self_id])
   end
 
-  def possible_valid_job?(body)
-    !!(body.has_key?('crawler_product_result_id') &&
+  def valid_job?(body)
+    !!(body.has_key?('productId') &&
         body.has_key?('title'))
   end
 
