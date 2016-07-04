@@ -54,7 +54,10 @@ class CrawlBot
   end
 
   def die!
-    sqs.delete_message(queue_url: bot_counter_address, receipt_handle: )
+    sqs.delete_message(
+      queue_url: bot_counter_address,
+      receipt_handle: @counter.receipt_handle
+    )
     ec2.terminate_instances(ids: [self_id])
   end
 
