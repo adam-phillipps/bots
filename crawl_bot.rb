@@ -8,6 +8,7 @@ class CrawlBot
 
   def initialize
     @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
+    @start_time = Time.now.to_i
     poll
   end
 
@@ -71,7 +72,7 @@ class CrawlBot
   end
 
   def time_is_up?
-    !!((@run_time - Time.now.to_i) > 0)
+    !!((Time.now.to_i - @start_time) < @run_time)
   end
 
   def death_ratio_acheived?
