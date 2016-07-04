@@ -8,9 +8,14 @@ class CrawlBot
   include Config
 
   def initialize
-    @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
-    @start_time = Time.now.to_i
-    poll
+    begin
+      @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
+      @start_time = Time.now.to_i
+      poll
+    rescue Exception => e
+      puts "there was a problem running crawl bot:\n#{e}"
+      die!
+    end
   end
 
   def poll
@@ -28,9 +33,11 @@ class CrawlBot
             puts "\n\nPossible job found:\n#{body}"
             catch :no_such_job_in_backlog do
               job = Job.new(msg, backlog_address)
-              make_self_known_to_the_world
+              add_self_to_working_bots_count
               job.run
-              puts "finished job: #{job.params}"
+              finished_job = job.finished_job
+              send_job_to_finished_queue(finished_job)
+              puts "finished job: #{job.run_params}\nwith:\n#{finished_job}\n\n"
             end
           else
             puts "body: #{msg.body}"
@@ -48,7 +55,24 @@ class CrawlBot
     die!
   end
 
-  def make_self_known_to_the_world
+  def self_id # hard code a value here for testing
+    'asdf' # @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
+  end
+
+  def boot_time # use `Time.now.to_i` instead of ec2 api call for testing
+    @instance_boot_time ||=
+      bot_ec2.describe_instances(instance_ids:[self_id]).
+        reservations[0].instances[0].launch_time.to_i
+  end
+
+  def send_job_to_finished_queue(message)
+    sqs.send_message(
+      queue_url: finished_address,
+      message_body: message.to_s
+    )
+  end
+
+  def add_self_to_working_bots_count
     @counter ||= sqs.send_message(
       queue_url: bot_counter_address,
       message_body: { id: self_id, time: Time.now }.to_json
@@ -77,29 +101,18 @@ class CrawlBot
   end
 
   def death_ratio_acheived?
-    !!(death_ratio >= death_threashold)
+    !!(current_ratio >= death_threashold)
   end
 
-  def death_ratio
+  def current_ratio
     backlog = get_count(backlog_address)
     wip = get_count(wip_address)
 
-    wip = wip <= 0.0 ? 1.0 : wip # guards against irrational values
-    backlog / wip
-  end
-
-  def self_id # hard code a value here for testing
-    @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
-  end
-
-  def boot_time # use `Time.now.to_i` instead of ec2 api call for testing
-    @instance_boot_time ||=
-      bot_ec2.describe_instances(instance_ids:[self_id]).
-        reservations[0].instances[0].launch_time.to_i
+    (((1.0 / jobs_ratio_denominator) * backlog) - wip).ceil
   end
 
   def death_threashold
-    @death_threashold ||= ENV['DEATH_RATIO'].to_i # 10
+    @death_threashold ||= 1.0 / ENV['RATIO_DENOMINATOR'].to_f
   end
 
   def polling_sleep_time

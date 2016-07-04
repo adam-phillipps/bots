@@ -79,10 +79,6 @@ class BotMaker
       @availability_zone ||= ENV['AVAILABILITY_ZONE']
     end
 
-    def jobs_ratio_denominator
-      @jobs_denom ||= ENV['RATIO_DENOMINATOR'].to_i
-    end
-
     def instance_type
       @instance_type ||= ENV['INSTANCE_TYPE']
     end

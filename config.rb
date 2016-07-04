@@ -57,6 +57,11 @@ module Config
     @region ||= ENV['AWS_REGION']
   end
 
+
+  def jobs_ratio_denominator
+    @jobs_ratio_denominator ||= ENV['RATIO_DENOMINATOR'].to_i
+  end
+
   def ec2
     @ec2 ||= Aws::EC2::Client.new(
       region: region,

@@ -13,16 +13,28 @@ class Job
     JSON.parse(plain_text_body)
   end
 
+  def finished_job
+    unless @finished_job
+      begin
+        file = File.read('data.json')
+        # @finished_job ||= JSON.parse(file).map { |result| result.to_json }
+        @finished_job ||= file
+      rescue Exception => e
+        puts "there was something wrong with the file or it doesn't exist"
+      end
+    end
+    @finished_job
+  end
 
-  def params
-    [
-      @params['productId'],
-      @params['title']
-    ]
+  def run_params
+    @run_params ||= {
+      product_id: @params['productId'],
+      title: @params['title']
+    }
   end
 
   def run
-    system("java -jar google-scraper.jar #{params.join(' ')}")
+    system("java -jar google-scraper.jar #{run_params[:productId]} \"#{run_params[:title]}\"")
   end
 
   def next_board
@@ -62,7 +74,6 @@ class Job
       delete_from_wip_queue
     end
   end
-
 
   def delete_from_wip_queue
     puts 'deleting from wip queue'
