@@ -16,7 +16,7 @@ class Job
 
   def params
     [
-      @params['crawler_product_result_id'],
+      @params['productId'],
       @params['title']
     ]
   end
