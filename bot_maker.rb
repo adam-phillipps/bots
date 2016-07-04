@@ -22,8 +22,8 @@ class BotMaker
 
     def adjusted_spawning_ratio
       backlog = get_count(backlog_address)
-      wip = get_count(wip_address)
-
+      wip = get_count(bot_counter_address)
+      byebug
       (((1.0 / jobs_ratio_denominator) * backlog) - wip).ceil
     end
 

@@ -49,6 +49,10 @@ module Config
     @needs_attention_address ||= ENV['NEEDS_ATTENTION_ADDRESS']
   end
 
+  def bot_counter_address
+    @bot_counter_address ||= ENV['BOT_COUNTER_ADDRESS']
+  end
+
   def region
     @region ||= ENV['AWS_REGION']
   end

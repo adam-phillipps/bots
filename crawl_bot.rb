@@ -1,6 +1,7 @@
 require_relative 'config'
 require 'dotenv'
 Dotenv.load(".crawl_bot.env")
+require 'json'
 
 class CrawlBot
   include Config
@@ -26,6 +27,7 @@ class CrawlBot
             puts "\n\nPossible job found:\n#{body}"
             catch :no_such_job_in_backlog do
               job = Job.new(msg, backlog_address)
+              make_self_known_to_the_world
               job.run
               puts "finished job: #{job.params}"
             end
@@ -42,6 +44,18 @@ class CrawlBot
         puts 'Polling....'
       end
     end
+    die!
+  end
+
+  def make_self_known_to_the_world
+    @counter ||= sqs.send_message(
+      queue_url: bot_counter_address,
+      message_body: { id: self_id, time: Time.now }.to_json
+    )
+  end
+
+  def die!
+    sqs.delete_message(queue_url: bot_counter_address, receipt_handle: )
     ec2.terminate_instances(ids: [self_id])
   end
 
