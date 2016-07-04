@@ -72,7 +72,7 @@ class CrawlBot
   end
 
   def time_is_up?
-    !!((Time.now.to_i - @start_time) < @run_time)
+    !!((@start_time + @run_time) < Time.now.to_i)
   end
 
   def death_ratio_acheived?
