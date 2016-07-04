@@ -45,7 +45,6 @@ class BotMaker
     end
 
     def bot_image
-      byebug
       @bot_image ||= ec2.describe_images(
         filters: [{ name: 'tag:aminame', values: [ENV['AMI_NAME']] }]
       ).images.first
