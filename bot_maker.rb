@@ -56,7 +56,6 @@ class BotMaker
 
     def instance_config(desired_instance_count)
       {
-        # dry_run:                  true,
         image_id:                 bot_image_id,
         instance_type:            instance_type,
         min_count:                desired_instance_count,

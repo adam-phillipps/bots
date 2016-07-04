@@ -70,18 +70,14 @@ class CrawlBot
     backlog / wip
   end
 
-  # def run_job(job)
-  #   # system("java -jar google-scraper.jar #{job.params.join(' ')}")
-  #   puts "java -jar google-scraper.jar #{job.params.join(' ')}"
-  # end
-
   def self_id # hard code a value here for testing
-    @id ||= 'fdasasfd' # HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
+    @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
   end
 
   def boot_time # use `Time.now.to_i` instead of ec2 api call for testing
-    @instance_boot_time ||= Time.now.to_i# bot_ec2.describe_instances(
-                              # instance_ids:[self_id]).reservations[0].instances[0].launch_time.to_i
+    @instance_boot_time ||=
+      bot_ec2.describe_instances(instance_ids:[self_id]).
+        reservations[0].instances[0].launch_time.to_i
   end
 
   def death_threashold

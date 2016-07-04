@@ -13,13 +13,6 @@ class Job
     JSON.parse(plain_text_body)
   end
 
-  def completion_handler
-    lambda do |notification|
-      if (notification['jobId'] == job_id && ['COMPLETED', 'ERROR'].include?(notification['state']))
-        notification_worker.stop
-      end
-    end
-  end
 
   def params
     [
@@ -29,26 +22,9 @@ class Job
   end
 
   def run
-    # system("java -jar google-scraper.jar #{job.params.join(' ')}")
-    puts "java -jar google-scraper.jar #{job.params.join(' ')}"
+    system("java -jar google-scraper.jar #{job.params.join(' ')}")
   end
-# {
-#     "crawler_product_result_id" : 1,
-#   "type" : "type",
-#   "page_url" : "page_url",
-#   "title" : "title",
-#   "text" : "text",
-#   "brand" : "brand",
-#   "offer_price" : "offer_price",
-#   "regular_price" : "regular_price",
-#   "shipping_amount" : "shipping_amount",
-#   "save_amount" : "save_amount",
-#   "product_id" : "product_id",
-#   "sku" : "sku",
-#   "availability" : "availability",
-#   "size" : "size",
-#   "created_date" : created_date
-# }
+
   def next_board
     board == backlog_address ? wip_address : finished_address
   end
@@ -81,7 +57,7 @@ class Job
       sqs.delete_message(
         queue_url: backlog_address,
         receipt_handle: receipt_handle
-      ) # delete from finished board?
+      )
     elsif @board == finished_address
       delete_from_wip_queue
     end
@@ -106,6 +82,14 @@ class Job
 
   def notification_worker
     @notification_worker ||= SqsQueueNotificationWorker.new(region, sqs_queue_url)
+  end
+
+  def completion_handler
+    lambda do |notification|
+      if (notification['jobId'] == job_id && ['COMPLETED', 'ERROR'].include?(notification['state']))
+        notification_worker.stop
+      end
+    end
   end
 
   def start_notification_worker
