@@ -24,7 +24,7 @@ class BotMaker
       backlog = get_count(backlog_address)
       wip = get_count(wip_address)
 
-      (((1.0 / jobs_ratio_denominator) * backlog) - wip).floor
+      (((1.0 / jobs_ratio_denominator) * backlog) - wip).ceil
     end
 
     def run_program(desired_instance_count)
