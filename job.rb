@@ -10,20 +10,15 @@ class Job
   end
 
   def body
-    JSON.parse(plain_text_body)
+    JSON.parse(message_body)
   end
 
   def finished_job
-    unless @finished_job
-      begin
-        file = File.read('data.json')
-        # @finished_job ||= JSON.parse(file).map { |result| result.to_json }
-        @finished_job ||= file
-      rescue Exception => e
-        puts "there was something wrong with the file or it doesn't exist"
-      end
+    begin
+      @finished_job ||= File.read('data.json')
+    rescue Errno::ENOENT => e
+      puts "There is a problem between starting and finishing the crawler:\n#{e}"
     end
-    @finished_job
   end
 
   def run_params
@@ -34,18 +29,21 @@ class Job
   end
 
   def run
-    system("java -jar google-scraper.jar #{run_params[:productId]} \"#{run_params[:title]}\"")
+    update_status
+    system(
+      "java -jar google-scraper.jar #{run_params[:product_id]} \"#{run_params[:title]}\""
+    )
   end
 
   def next_board
-    board == backlog_address ? wip_address : finished_address
+    @board = @board == backlog_address ? wip_address : finished_address
   end
 
   def previous_board
-    board == finished_address ? wip_address : backlog_address
+    @board = @board == finished_address ? wip_address : backlog_address
   end
 
-  def plain_text_body
+  def message_body
     msg.body
   end
 
@@ -57,7 +55,7 @@ class Job
   def update_status(to = next_board)
     sqs.send_message(
       queue_url: to,
-      message_body: plain_text_body
+      message_body: message_body
     )
 
     @board = next_board if to == next_board

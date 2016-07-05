@@ -23,6 +23,14 @@ module Config
     )
   end
 
+  def counter_poller
+    @counter_poller ||= Aws::SQS::QueuePoller.new(
+      credentials: creds,
+      region: region,
+      queue_url: bot_counter_address
+    )
+  end
+
   def sqs
     @sqs ||= Aws::SQS::Client.new(credentials: creds)
   end
@@ -45,12 +53,12 @@ module Config
     @finished_address ||= ENV['FINISHED_ADDRESS']
   end
 
-  def needs_attention_address
-    @needs_attention_address ||= ENV['NEEDS_ATTENTION_ADDRESS']
-  end
-
   def bot_counter_address
     @bot_counter_address ||= ENV['BOT_COUNTER_ADDRESS']
+  end
+
+  def needs_attention_address
+    @needs_attention_address ||= ENV['NEEDS_ATTENTION_ADDRESS']
   end
 
   def region

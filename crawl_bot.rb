@@ -8,14 +8,9 @@ class CrawlBot
   include Config
 
   def initialize
-    begin
-      @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
-      @start_time = Time.now.to_i
-      poll
-    rescue Exception => e
-      puts "there was a problem running crawl bot:\n#{e}"
-      die!
-    end
+    @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
+    @start_time = Time.now.to_i
+    poll
   end
 
   def poll
@@ -31,14 +26,18 @@ class CrawlBot
           body = JSON.parse(msg.body)
           if valid_job?(body)
             puts "\n\nPossible job found:\n#{body}"
-            catch :no_such_job_in_backlog do
-              job = Job.new(msg, backlog_address)
-              add_self_to_working_bots_count
-              job.run
-              finished_job = job.finished_job
-              send_job_to_finished_queue(finished_job)
-              puts "finished job: #{job.run_params}\nwith:\n#{finished_job}\n\n"
-            end
+
+            job = Job.new(msg, backlog_address)
+            add_self_to_working_bots_count
+            job.run
+
+            finished_job = job.finished_job
+            send_job_to_finished_queue(finished_job)
+
+            random_wait_time = rand(10) + 10
+            puts "Finished job: #{job.run_params}\nwith:\n#{finished_job}\n \
+              Sleeping for #{random_wait_time} seconds..."
+            sleep(random_wait_time) # take this out when the logic moves to the java
           else
             puts "body: #{msg.body}"
             sqs.delete_message(
@@ -47,7 +46,7 @@ class CrawlBot
             )
           end
         rescue JSON::ParserError => e
-          puts "Trouble with #{msg.body}:\n____#{e}\n"
+          puts "Trouble with #{msg.body}:\n#{e}"
         end
         puts 'Polling....'
       end
@@ -56,7 +55,7 @@ class CrawlBot
   end
 
   def self_id # hard code a value here for testing
-    'asdf' # @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
+    'fdjkdkfjd' # @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
   end
 
   def boot_time # use `Time.now.to_i` instead of ec2 api call for testing
@@ -66,25 +65,29 @@ class CrawlBot
   end
 
   def send_job_to_finished_queue(message)
+    byebug
     sqs.send_message(
       queue_url: finished_address,
-      message_body: message.to_s
+      message_body: message
     )
   end
 
   def add_self_to_working_bots_count
-    @counter ||= sqs.send_message(
+    @counter = sqs.send_message(
       queue_url: bot_counter_address,
       message_body: { id: self_id, time: Time.now }.to_json
     )
   end
 
   def die!
-    sqs.delete_message(
-      queue_url: bot_counter_address,
-      receipt_handle: @counter.receipt_handle
-    )
-    ec2.terminate_instances(ids: [self_id])
+    counter_poller.poll(
+      wait_time_seconds: nil,
+      max_number_of_messages: 1,
+      visibility_timeout: 10 # keep message invisible long enough to process to wip
+    ) do |msg, stats|
+      puts "decrementing the bot count before shutting down..."
+    end
+    # ec2.terminate_instances(ids: [self_id])
   end
 
   def valid_job?(body)
