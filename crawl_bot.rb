@@ -28,14 +28,14 @@ class CrawlBot
             puts "\n\nPossible job found:\n#{body}"
 
             job = Job.new(msg, backlog_address)
+            update_status(job)
             add_self_to_working_bots_count
             job.run
 
-            finished_job = job.finished_job
-            send_job_to_finished_queue(finished_job)
+            send_job_to_finished_queue(job.finished_job)
 
             random_wait_time = rand(10) + 10
-            puts "Finished job: #{job.run_params}\nwith:\n#{finished_job}\n \
+            puts "Finished job: #{job.run_params}\nwith:\n#{job.finished_job}\n \
               Sleeping for #{random_wait_time} seconds..."
             sleep(random_wait_time) # take this out when the logic moves to the java
           else
@@ -65,7 +65,6 @@ class CrawlBot
   end
 
   def send_job_to_finished_queue(message)
-    byebug
     sqs.send_message(
       queue_url: finished_address,
       message_body: message
@@ -130,6 +129,45 @@ class CrawlBot
     @s3 ||= Aws::S3::Client.new(
       region: region,
       credentials: creds
+    )
+  end
+
+  def update_status(job)
+    sqs.delete_message(
+      queue_url: job.previous_board,
+      receipt_handle: job.receipt_handle
+    )
+
+    sqs.send_message(
+      queue_url: job.next_board,
+      message_body: job.message.body
+    )
+  end
+
+  def delete_from_message_origination_board
+    if @board == wip_address || @board == backlog_address
+      sqs.delete_message(
+        queue_url: backlog_address,
+        receipt_handle: receipt_handle
+      )
+    elsif @board == finished_address
+      delete_from_wip_queue
+    end
+  end
+
+  def delete_from_wip_queue
+    puts 'deleting from wip queue'
+    wip_poller.poll(max_number_of_messages: 1) do |msg|
+      wip_poller.delete_message(msg)
+      throw :stop_polling
+    end
+  end
+
+  def delete_from_backlog_queue
+    puts 'deleting from backlog queue'
+    sqs.delete_message(
+      queue_url: backlog_address,
+      receipt_handle: receipt_handle
     )
   end
 
