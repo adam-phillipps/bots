@@ -1,5 +1,5 @@
 require 'dotenv'
-Dotenv.load(".bot_maker.env")
+Dotenv.load('.bot_maker.env')
 require 'aws-sdk'
 require 'date'
 require 'byebug'
@@ -29,16 +29,21 @@ class BotMaker
 
     def run_program(desired_instance_count)
       puts "start #{desired_instance_count} instances at #{Time.now}"
-      divider = 100.00
+      request_size = 100 # safe maximum number of instances to request at once
+      count = 0
+
       if desired_instance_count > 0
-        chunks = (desired_instance_count.to_f / divider).floor
-        leftover = (desired_instance_count % divider).floor
+        chunks = (desired_instance_count.to_f / request_size).floor
+        leftover = (desired_instance_count % request_size).floor
         begin
           chunks.times do |n|
-            puts "start 100 of #{desired_instance_count} instances at #{Time.now}"
-            ec2.run_instances(instance_config(divider))
+            puts "start #{request_size} of #{desired_instance_count} instances \
+              at #{Time.now}\n    from #{count} -->  " + (count + leftover).to_s
+            ec2.run_instances(instance_config(request_size))
+            count += leftover
           end
-          puts "start #{leftover} of #{desired_instance_count} instances at #{Time.now}"
+          puts "start #{leftover} of #{desired_instance_count} instances at \
+            #{Time.now}\n    from #{count} -->  " + (count += leftover).to_s
           ec2.run_instances(instance_config(leftover))
         rescue Aws::EC2::Errors::DryRunOperation => e
           puts e

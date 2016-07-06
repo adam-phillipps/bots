@@ -1,5 +1,3 @@
-require 'dotenv'
-Dotenv.load
 require 'aws-sdk'
 Aws.use_bundled_cert!
 require 'httparty'
