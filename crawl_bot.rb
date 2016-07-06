@@ -10,7 +10,6 @@ class CrawlBot
   def initialize
     @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
     @start_time = Time.now.to_i
-    die!
     poll
   end
 
