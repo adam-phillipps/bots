@@ -26,7 +26,8 @@ module Config
   def ec2
     @ec2 ||= Aws::EC2::Client.new(
       region: region,
-      credentials: creds)
+      credentials: creds
+    )
   end
 
   def backlog_address

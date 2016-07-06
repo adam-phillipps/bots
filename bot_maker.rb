@@ -16,7 +16,7 @@ class BotMaker
      def poll
       loop do
         run_program(adjusted_spawning_ratio)
-        sleep 5
+        sleep 5 # slow the polling
       end
     end
 
@@ -28,15 +28,21 @@ class BotMaker
     end
 
     def run_program(desired_instance_count)
-      puts "count at #{Time.now}: #{desired_instance_count}"
+      puts "start #{desired_instance_count} instances at #{Time.now}"
+      divider = 100.00
       if desired_instance_count > 0
-        chunks = (desired_instance_count.to_f / 100.00).floor
-        leftover = (desired_instance_count % 100.00).floor
-
-        chunks.times do |n|
-          ec2.run_instances(instance_config(100))
+        chunks = (desired_instance_count.to_f / divider).floor
+        leftover = (desired_instance_count % divider).floor
+        begin
+          chunks.times do |n|
+            puts "start 100 of #{desired_instance_count} instances at #{Time.now}"
+            ec2.run_instances(instance_config(divider))
+          end
+          puts "start #{leftover} of #{desired_instance_count} instances at #{Time.now}"
+          ec2.run_instances(instance_config(leftover))
+        rescue Aws::EC2::Errors::DryRunOperation => e
+          puts e
         end
-        ec2.run_instances(leftover)
       end
     end
 
@@ -55,14 +61,15 @@ class BotMaker
     end
 
     def instance_config(desired_instance_count)
+      count = desired_instance_count.to_i
       {
         image_id:                 bot_image_id,
         instance_type:            instance_type,
-        min_count:                desired_instance_count,
-        max_count:                desired_instance_count,
+        min_count:                count,
+        max_count:                count,
         key_name:                 'crawlBot',
-        # security_groups:          ['crawlBot'],
-        # security_group_ids:       ['sg-6950d20f'],
+        security_groups:          ['webCrawler'],
+        security_group_ids:       ['sg-940edcf2'],
         placement:                { availability_zone: availability_zone },
         disable_api_termination:  'false',
         instance_initiated_shutdown_behavior: 'terminate'
