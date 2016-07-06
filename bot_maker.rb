@@ -36,13 +36,12 @@ class BotMaker
         chunks = (desired_instance_count.to_f / request_size).floor
         leftover = (desired_instance_count % request_size).floor
         begin
+          puts "working on #{request_size} of #{desired_instance_count} instances at #{Time.now}"
           chunks.times do |n|
-            puts "start #{request_size} of #{desired_instance_count} instances \
-              at #{Time.now}\n    from #{count} -->  " + (count += request_size).to_s
+            puts "    from #{count} -->  " + (count += request_size).to_s
             ec2.run_instances(instance_config(request_size))
           end
-          puts "start #{leftover} of #{desired_instance_count} instances at \
-            #{Time.now}\n    from #{count} -->  " + (count += leftover).to_s
+          puts "    from #{count} -->  " + (count += leftover).to_s
           ec2.run_instances(instance_config(leftover))
         rescue Aws::EC2::Errors::DryRunOperation => e
           puts e
