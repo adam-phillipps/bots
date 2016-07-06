@@ -10,6 +10,7 @@ class CrawlBot
   def initialize
     @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
     @start_time = Time.now.to_i
+    die!
     poll
   end
 
@@ -54,11 +55,11 @@ class CrawlBot
     die!
   end
 
-  def self_id # hard code a value here for testing
-    'fdjkdkfjd' # @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
+  def self_id
+    @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
   end
 
-  def boot_time # use `Time.now.to_i` instead of ec2 api call for testing
+  def boot_time
     @instance_boot_time ||=
       bot_ec2.describe_instances(instance_ids:[self_id]).
         reservations[0].instances[0].launch_time.to_i
@@ -79,14 +80,11 @@ class CrawlBot
   end
 
   def die!
-    counter_poller.poll(
-      wait_time_seconds: nil,
-      max_number_of_messages: 1,
-      visibility_timeout: 10 # keep message invisible long enough to process to wip
-    ) do |msg, stats|
-      puts "decrementing the bot count before shutting down..."
+    counter_poller.poll(max_number_of_messages: 1) do |msg|
+      counter_poller.delete_message(msg)
+      throw :stop_polling
     end
-    # ec2.terminate_instances(ids: [self_id])
+    ec2.terminate_instances(ids: [self_id])
   end
 
   def valid_job?(body)
