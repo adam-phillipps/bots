@@ -118,10 +118,6 @@ class CrawlBot
     @polling_sleep_time ||= ENV['POLLING_SLEEP_TIME'].to_i # 5
   end
 
-  def backlog_poller
-    @backlog_poller ||= Aws::SQS::QueuePoller.new(backlog_address)
-  end
-
   def s3
     @s3 ||= Aws::S3::Client.new(
       region: region,

@@ -7,28 +7,16 @@ require 'logger'
 require 'byebug'
 
 module Config
-  def wip_poller
-    @wip_poller ||= Aws::SQS::QueuePoller.new(
-      credentials: creds,
-      region: region,
-      queue_url: wip_address
-    )
+  def backlog_poller
+    @backlog_poller ||= Aws::SQS::QueuePoller.new(backlog_address)
   end
 
-  def backlog_poller
-    @backlog_poller ||= Aws::SQS::QueuePoller.new(
-      credentials: creds,
-      region: region,
-      queue_url: backlog_address
-    )
+  def wip_poller
+    @wip_poller ||= Aws::SQS::QueuePoller.new(wip_address)
   end
 
   def counter_poller
-    @counter_poller ||= Aws::SQS::QueuePoller.new(
-      credentials: creds,
-      region: region,
-      queue_url: bot_counter_address
-    )
+    @counter_poller ||= Aws::SQS::QueuePoller.new(bot_counter_address)
   end
 
   def sqs
