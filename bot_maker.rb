@@ -38,9 +38,8 @@ class BotMaker
         begin
           chunks.times do |n|
             puts "start #{request_size} of #{desired_instance_count} instances \
-              at #{Time.now}\n    from #{count} -->  " + (count + leftover).to_s
+              at #{Time.now}\n    from #{count} -->  " + (count += request_size).to_s
             ec2.run_instances(instance_config(request_size))
-            count += leftover
           end
           puts "start #{leftover} of #{desired_instance_count} instances at \
             #{Time.now}\n    from #{count} -->  " + (count += leftover).to_s
