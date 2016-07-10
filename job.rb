@@ -1,10 +1,11 @@
-require_relative './config'
+require_relative 'config'
 
 class Job
   include Config
   attr_reader :message, :board
 
   def initialize(msg, board)
+    puts 'job running'
     @message = msg
     @params = JSON.parse(msg.body)
     @board = board
@@ -14,7 +15,8 @@ class Job
     begin
       @finished_job ||= File.read('data.json')
     rescue Errno::ENOENT => e
-      puts "There is a problem between starting and finishing the crawler:\n#{e}"
+      log "There was a problem finding the finished file" +
+        "which usually means there was a problem between starting and finishing the crawler:\n#{e}"
     end
   end
 
@@ -31,32 +33,78 @@ class Job
     )
   end
 
+  def update_status(from = @board, to = next_board)
+    begin
+      sqs.delete_message(
+        queue_url: from,
+        receipt_handle: receipt_handle
+      )
+
+      sqs.send_message(
+        queue_url: to,
+        message_body: message_body
+      )
+
+      poller(next_board_name).poll(max_number_of_messages: 1, skip_delete: true) do |msg|
+        @message = msg
+        @board = to
+        throw :stop_polling
+      end
+      log "progressing through status...\n"
+    rescue Exception => e
+      log "Problem updating status:\n#{e}"
+    end
+  end
+
+  def next_board_name
+    case @board
+    when backlog_address
+      'wip'
+    when wip_address
+      'finished'
+    when finished_address
+      ''
+    when bot_counter_address
+      'counter'
+    else
+      ''
+    end
+  end
+
+  def valid?
+    !!(
+        begin
+          @params.has_key?('productId') &&
+            @params.has_key?('title')
+        rescue Exception => e
+          false
+        end
+      )
+  end
+
+  def message_body
+    @message.body
+  end
+
   def next_board
-    @board = @board == backlog_address ? wip_address : finished_address
+    @board == backlog_address ? wip_address : finished_address
   end
 
   def previous_board
-    @board = @board == finished_address ? wip_address : backlog_address
+    @board == finished_address ? wip_address : backlog_address
   end
 
   def receipt_handle
-    @receipt_handle = @message.receipt_handle
+    @message.receipt_handle
   end
 
   def notification_worker
     @notification_worker ||= SqsQueueNotificationWorker.new(region, sqs_queue_url)
   end
 
-  def completion_handler
-    lambda do |notification|
-      if (notification['jobId'] == job_id && ['COMPLETED', 'ERROR'].include?(notification['state']))
-        notification_worker.stop
-      end
-    end
-  end
-
-  def start_notification_worker
-    notification_worker.add_handler(completion_handler)
-    notification_worker.start
+  def creds
+    @creds ||= Aws::Credentials.new(
+      ENV['AWS_ACCESS_KEY_ID'],
+      ENV['AWS_SECRET_ACCESS_KEY'])
   end
 end

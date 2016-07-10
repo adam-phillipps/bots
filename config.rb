@@ -1,10 +1,20 @@
 require 'aws-sdk'
 Aws.use_bundled_cert!
 require 'httparty'
+require 'syslog/logger'
 require 'logger'
+require 'io/console'
 require 'byebug'
 
 module Config
+  def poller(board)
+    begin
+      eval("#{board}_poller")
+    rescue NameError => e
+      puts "There isn't such a poller available"
+    end
+  end
+
   def backlog_poller
     @backlog_poller ||= Aws::SQS::QueuePoller.new(backlog_address)
   end
@@ -70,14 +80,15 @@ module Config
     ).attributes['ApproximateNumberOfMessages'].to_f
   end
 
-  def setup_logger
-    logger_client ||= Logger.new(
-      File.open(File.expand_path('../crawlBot.log', __FILE__), 'a+'))
-    logger_client.level = Logger::INFO
-    logger_client
+  def filename
+    @filename ||= ENV['LOG_FILE']
   end
 
-  def logger(msg)
-    logger.info("\n#{Time.now}: #{msg}\n")
+  def log(message)
+    IO.write filename, message
+  end
+
+  def format_finished_body(body)
+    body.split(' ')[0..10].join(' ') + '...'
   end
 end
