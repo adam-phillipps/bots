@@ -9,7 +9,11 @@ class BotMaker
   include Config
   begin
     def initialize
-      poll
+      begin
+        poll
+      rescue Exception => e
+        log "Fatal error durring polling #{Time.now}:\n#{e}"
+      end
     end
 
      def poll
@@ -27,7 +31,7 @@ class BotMaker
     end
 
     def run_program(desired_instance_count)
-      puts "start #{desired_instance_count} instances at #{Time.now}"
+      log "start #{desired_instance_count} instances at #{Time.now}"
       request_size = 100 # safe maximum number of instances to request at once
       count = 0
 
@@ -35,15 +39,15 @@ class BotMaker
         chunks = (desired_instance_count.to_f / request_size).floor
         leftover = (desired_instance_count % request_size).floor
         begin
-          puts "working on #{request_size} of #{desired_instance_count} instances at #{Time.now}"
+          log "working on #{request_size} of #{desired_instance_count} instances at #{Time.now}"
           chunks.times do |n|
-            puts "    from #{count} -->  " + (count += request_size).to_s
+            log "    from #{count} -->  " + (count += request_size).to_s
             ec2.run_instances(instance_config(request_size))
           end
-          puts "    from #{count} -->  " + (count += leftover).to_s
+          log "    from #{count} -->  " + (count += leftover).to_s
           ec2.run_instances(instance_config(leftover))
         rescue Aws::EC2::Errors::DryRunOperation => e
-          puts e
+          log e
         end
       end
     end
