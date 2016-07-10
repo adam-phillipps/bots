@@ -28,7 +28,7 @@ class CrawlBot
         rescue JSON::ParserError => e
           log "Trouble with #{msg.body}:\n#{e}"
         end
-        log 'Polling....'
+        log "Polling....\n"
       end
     end
     die!
@@ -86,6 +86,7 @@ class CrawlBot
       poller('counter').delete_message(msg)
       throw :stop_polling
     end
+    send_logs_to_s3
     ec2.terminate_instances(ids: [self_id])
   end
 

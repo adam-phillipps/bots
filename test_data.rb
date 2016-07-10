@@ -1,6 +1,7 @@
 require_relative 'config'
 require 'dotenv'
 Dotenv.load(".bot_maker.env")
+require 'json'
 
 
 class TestData
@@ -8,7 +9,7 @@ class TestData
 
   def initialize
     356.times do |n|
-      sqs.send_message(queue_url: backlog_address, message_body: Time.now.to_i.to_s)
+      sqs.send_message(queue_url: backlog_address, message_body: {"productId":2645,"title":"Z by Malouf Z Wedge Pillow with Cover"}.to_json)
     end
   end
 

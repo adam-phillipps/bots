@@ -46,3 +46,4 @@ build/
 .bot_maker.env
 google-scraper.jar
 *.json
+*.log

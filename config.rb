@@ -91,4 +91,18 @@ module Config
   def format_finished_body(body)
     body.split(' ')[0..10].join(' ') + '...'
   end
+
+  def send_logs_to_s3
+    File.open(filename) do |file|
+      s3.put_object(
+        bucket: log_bucket,
+        key: self_id,
+        body: file
+      )
+    end
+  end
+
+  def log_bucket
+    @log_bucket ||= ENV['LOGS_BUCKET']
+  end
 end
