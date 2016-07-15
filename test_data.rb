@@ -28,4 +28,4 @@ class TestData
 end
 
 # TestData.new.add
-# TestData.new.delete('wip')
+# TestData.new.delete('')

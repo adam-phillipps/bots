@@ -23,6 +23,10 @@ module Config
     @wip_poller ||= Aws::SQS::QueuePoller.new(wip_address)
   end
 
+  def finished_poller
+    @finished_poller ||= Aws::SQS::QueuePoller.new(finished_address)
+  end
+
   def counter_poller
     @counter_poller ||= Aws::SQS::QueuePoller.new(bot_counter_address)
   end
