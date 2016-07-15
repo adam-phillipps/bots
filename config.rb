@@ -85,7 +85,7 @@ module Config
   end
 
   def log(message)
-    IO.write filename, message
+    IO.write filename, "#{message} + \n"
   end
 
   def format_finished_body(body)

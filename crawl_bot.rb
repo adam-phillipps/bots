@@ -58,7 +58,7 @@ class CrawlBot
   end
 
   def self_id
-    @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
+    'asdf' # @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
   end
 
   def boot_time

@@ -5,7 +5,6 @@ class Job
   attr_reader :message, :board
 
   def initialize(msg, board)
-    puts 'job running'
     @message = msg
     @params = JSON.parse(msg.body)
     @board = board
@@ -28,9 +27,11 @@ class Job
   end
 
   def run
+    puts 'job running...'
     system(
       "java -jar google-scraper.jar #{run_params[:product_id]} \"#{run_params[:title]}\""
     )
+    puts 'finished job!'
   end
 
   def update_status(from = @board, to = next_board)
@@ -77,6 +78,7 @@ class Job
           @params.has_key?('productId') &&
             @params.has_key?('title')
         rescue Exception => e
+          log "invalid job!:\n#{self}\n\n#{e}"
           false
         end
       )

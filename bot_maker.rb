@@ -10,6 +10,7 @@ class BotMaker
   begin
     def initialize
       begin
+        log "Begining to poll at #{Time.now}.."
         poll
       rescue Exception => e
         log "Fatal error durring polling #{Time.now}:\n#{e}"
