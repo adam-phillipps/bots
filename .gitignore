@@ -47,3 +47,4 @@ build/
 google-scraper.jar
 *.json
 *.log
+dispatcher.jar

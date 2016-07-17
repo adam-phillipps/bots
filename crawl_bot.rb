@@ -10,7 +10,6 @@ class CrawlBot
   def initialize
     @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
     @start_time = Time.now.to_i
-    add_self_to_working_bots_count
     poll
   end
 
@@ -39,13 +38,12 @@ class CrawlBot
     job.update_status
 
     job.run
-    job.update_status
+    job.update_status(job.finished_job)
 
     random_wait_time = rand(10) + 10
     log "Finished job: #{job.run_params}\n \
       with:\n#{format_finished_body(job.finished_job)}\n \
         Sleeping for #{random_wait_time} seconds..."
-    send_job_to_finished_queue(job.finished_job)
     sleep(random_wait_time) # take this out when the logic moves to the java
   end
 
@@ -58,27 +56,13 @@ class CrawlBot
   end
 
   def self_id
-    'asdf' # @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
+    @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
   end
 
   def boot_time
     @instance_boot_time ||=
       bot_ec2.describe_instances(instance_ids:[self_id]).
         reservations[0].instances[0].launch_time.to_i
-  end
-
-  def send_job_to_finished_queue(message)
-    sqs.send_message(
-      queue_url: finished_address,
-      message_body: message
-    )
-  end
-
-  def add_self_to_working_bots_count
-    sqs.send_message(
-      queue_url: bot_counter_address,
-      message_body: { id: self_id, time: Time.now }.to_json
-    )
   end
 
   def die!

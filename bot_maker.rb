@@ -32,24 +32,50 @@ class BotMaker
     end
 
     def run_program(desired_instance_count)
-      log "start #{desired_instance_count} instances at #{Time.now}"
-      request_size = 100 # safe maximum number of instances to request at once
-      count = 0
-
       if desired_instance_count > 0
-        chunks = (desired_instance_count.to_f / request_size).floor
-        leftover = (desired_instance_count % request_size).floor
+        log "#{Time.now}\n\tstart #{desired_instance_count} instances"
+        max_request_size = 100 # safe maximum number of instances to request at once
+        bot_ids = []
+
+        chunks = (desired_instance_count.to_f / max_request_size).floor
+        leftover = (desired_instance_count % max_request_size).floor
         begin
-          log "working on #{request_size} of #{desired_instance_count} instances at #{Time.now}"
-          chunks.times do |n|
-            log "    from #{count} -->  " + (count += request_size).to_s
-            ec2.run_instances(instance_config(request_size))
+          chunks.times { bot_ids.concat(spin_up_instances(max_request_size)) }
+          bot_ids.concat(spin_up_instances(leftover))
+
+          ec2.wait_until(:instance_running, instance_ids: bot_ids) do
+            log "#{Time.now}\n\twaiting for #{bot_ids.count} instances..."
+            ec2.create_tags(
+              resources: bot_ids,
+              tags: [
+                key: 'Name',
+                values: 'crawlBot-started'
+              ]
+            )
           end
-          log "    from #{count} -->  " + (count += leftover).to_s
-          ec2.run_instances(instance_config(leftover))
-        rescue Aws::EC2::Errors::DryRunOperation => e
+          log "started #{bot_ids.count} instances:\ninstance ids:\n\t#{bot_ids}"
+        rescue Aws::EC2::Errors::DryRunOperation,
+                Aws::Waiters::Errors::WaiterFailed => e
           log e
         end
+      else
+        log "#{Time.now}\n\treceived 0 requested instance count. starting 0 instances..."
+      end
+    end
+
+    def spin_up_instances(request_size)
+      response = ec2.run_instances(instance_config(request_size))
+      ids = response.instances.map(&:instance_id)
+      add_to_working_bots_count(ids)
+      ids
+    end
+
+    def add_to_working_bots_count(ids)
+      ids.each do |id|
+        sqs.send_message(
+          queue_url: bot_counter_address,
+          message_body: { id: id, time: Time.now }.to_json
+        )
       end
     end
 

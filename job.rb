@@ -34,16 +34,19 @@ class Job
     puts 'finished job!'
   end
 
-  def update_status(from = @board, to = next_board)
+  def update_status(finished_message = nil)
     begin
+      from = @board
+      to = next_board
       sqs.delete_message(
         queue_url: from,
         receipt_handle: receipt_handle
       )
 
+      message = finished_message.nil? ? message_body : finished_message
       sqs.send_message(
         queue_url: to,
-        message_body: message_body
+        message_body: message
       )
 
       poller(next_board_name).poll(max_number_of_messages: 1, skip_delete: true) do |msg|
