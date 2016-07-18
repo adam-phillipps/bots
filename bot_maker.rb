@@ -43,16 +43,6 @@ class BotMaker
           chunks.times { bot_ids.concat(spin_up_instances(max_request_size)) }
           bot_ids.concat(spin_up_instances(leftover))
 
-          ec2.wait_until(:instance_running, instance_ids: bot_ids) do
-            log "#{Time.now}\n\twaiting for #{bot_ids.count} instances..."
-            ec2.create_tags(
-              resources: bot_ids,
-              tags: [
-                key: 'Name',
-                values: 'crawlBot-started'
-              ]
-            )
-          end
           log "started #{bot_ids.count} instances:\ninstance ids:\n\t#{bot_ids}"
         rescue Aws::EC2::Errors::DryRunOperation,
                 Aws::Waiters::Errors::WaiterFailed => e
@@ -66,7 +56,20 @@ class BotMaker
     def spin_up_instances(request_size)
       response = ec2.run_instances(instance_config(request_size))
       ids = response.instances.map(&:instance_id)
+
       add_to_working_bots_count(ids)
+
+      ec2.wait_until(:instance_running, instance_ids: ids) do
+        log "#{Time.now}\n\twaiting for #{ids.count} instances..."
+      end
+
+      ec2.create_tags(
+        resources: bot_ids,
+        tags: [
+          key: 'Name',
+          values: 'crawlBot-started'
+        ]
+      )
       ids
     end
 
