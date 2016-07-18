@@ -11,7 +11,7 @@ module Config
     begin
       eval("#{board}_poller")
     rescue NameError => e
-      puts "There isn't such a poller available"
+      puts "There isn't a #{board} poller available...\n#{e}"
     end
   end
 

@@ -1,0 +1,27 @@
+### BEGIN INIT INFO
+# Provides:          rubCrawlBot
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start daemon at boot time
+# Description:       Enable service provided by daemon.
+### END INIT INFO
+#!/bin/sh
+#!/usr/bin/env ruby
+log()
+{
+    read INPUT
+    logger -s -t $(basename $0) "DEBUG: $INPUT"
+}
+logger "Started Crawl Bot Script"
+/home/ubuntu/.rbenv/shims/ruby -v | (log)
+cd /home/ubuntu/crawler
+git reset --hard HEAD
+git checkout master
+git reset --hard origin/master
+git pull --rebase
+bundle install
+/home/ubuntu/.rbenv/shims/ruby crawl_bot.rb >> crawlBot.log | (log)
+logger "Completed Script"
+exit 0

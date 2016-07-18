@@ -27,11 +27,11 @@ class Job
   end
 
   def run
-    puts 'job running...'
+    log "job running...\n#{run_params}"
     system(
       "java -jar google-scraper.jar #{run_params[:product_id]} \"#{run_params[:title]}\""
     )
-    puts 'finished job!'
+    log "finished job!\n#{run_params}"
   end
 
   def update_status(finished_message = nil)
@@ -54,7 +54,7 @@ class Job
         @board = to
         throw :stop_polling
       end
-      log "progressing through status...\n"
+      log "progressing through status...\ncurrent_board is #{@board}"
     rescue Exception => e
       log "Problem updating status:\n#{e}"
     end
@@ -66,8 +66,6 @@ class Job
       'wip'
     when wip_address
       'finished'
-    when finished_address
-      ''
     when bot_counter_address
       'counter'
     else
