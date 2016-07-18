@@ -55,6 +55,6 @@ class TestData
 end
 
 
-TestData.new.add(100)
+TestData.new.add(50)
 # TestData.new.delete('backlog')
 # TestData.new.terminate_instances

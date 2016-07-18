@@ -64,7 +64,7 @@ class BotMaker
       end
 
       ec2.create_tags(
-        resources: bot_ids,
+        resources: ids,
         tags: [
           key: 'Name',
           values: 'crawlBot-started'
