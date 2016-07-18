@@ -22,6 +22,7 @@ class CrawlBot
     until should_stop? do
       sleep rand(polling_sleep_time)
       poller('backlog').poll(
+        idle_timeout: 60,
         wait_time_seconds: nil,
         max_number_of_messages: 1,
         visibility_timeout: 10 # keep message invisible long enough to process to wip
@@ -39,7 +40,7 @@ class CrawlBot
   end
 
   def process_job(job)
-    log "Possible job found:\n#{job.message_body}"
+    log "Job found:\n#{job.message_body}"
     job.update_status
 
     job.run
