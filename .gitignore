@@ -44,7 +44,6 @@ build/
 
 .crawl_bot.env
 .bot_maker.env
-google-scraper.jar
 *.json
 *.log
 dispatcher.jar
