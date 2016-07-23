@@ -44,8 +44,7 @@ class BotMaker
           bot_ids.concat(spin_up_instances(leftover))
 
           log "started #{bot_ids.count} instances:\ninstance ids:\n\t#{bot_ids}"
-        rescue Aws::EC2::Errors::DryRunOperation,
-                Aws::Waiters::Errors::WaiterFailed => e
+        rescue Aws::EC2::Errors::DryRunOperation => e
           log e
         end
       else

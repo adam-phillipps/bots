@@ -66,6 +66,9 @@ module Config
     @region ||= ENV['AWS_REGION']
   end
 
+  def scraper
+    Dir["#{File.expand_path(File.dirname(__FILE__))}/**/*.jar"].first
+  end
 
   def jobs_ratio_denominator
     @jobs_ratio_denominator ||= ENV['RATIO_DENOMINATOR'].to_i

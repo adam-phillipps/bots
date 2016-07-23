@@ -12,7 +12,7 @@ class TestData
     number.times do |n|
       puts n
       sqs.send_message(
-        queue_url: backlog_address,
+        queue_url: wip_address,
         message_body: {
           "productId":2645,
           "title":"Z by Malouf Z Wedge Pillow with Cover"
@@ -55,6 +55,6 @@ class TestData
 end
 
 
-TestData.new.add(50)
+TestData.new.add(1)
 # TestData.new.delete('backlog')
 # TestData.new.terminate_instances

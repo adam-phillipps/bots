@@ -12,14 +12,16 @@ class Job
 
   def finished_job
     begin
-      @finished_job ||= File.read('data.json')
+      File.read('data.json')
     rescue Errno::ENOENT => e
+      # throw :scraper_problem
       log "There was a problem finding the finished file" +
         "which usually means there was a problem between starting and finishing the crawler:\n#{e}"
+      # die! # discuss
     end
   end
 
-  def run_params
+  def run_params # refactor this.  it's just key.to_sym
     @run_params ||= {
       product_id: @params['productId'],
       title: @params['title']
@@ -28,16 +30,28 @@ class Job
 
   def run
     log "job running...\n#{run_params}"
+
+    Dir.glob('*.json').each { |file| File.delete(file) }
+
     system(
-      "java -jar google-scraper.jar #{run_params[:product_id]} \"#{run_params[:title]}\""
+      "java -jar #{scraper} #{run_params[:product_id]} \"#{run_params[:title]}\""
     )
+
+    until Dir.glob('data.json').first
+      log "waiting for job to finish..."
+      sleep 10
+    end
     log "finished job!\n#{run_params}"
   end
 
   def update_status(finished_message = nil)
     begin
+      log "progressing through status...\n \
+        current_board is #{@board}"
+
       from = @board
       to = next_board
+
       sqs.delete_message(
         queue_url: from,
         receipt_handle: receipt_handle
@@ -49,14 +63,20 @@ class Job
         message_body: message
       )
 
-      poller(next_board_name).poll(max_number_of_messages: 1, skip_delete: true) do |msg|
+      poller(next_board_name).poll(
+        idle_timeout: 60,
+        skip_delete: true,
+        max_number_of_messages: 1
+      ) do |msg|
         @message = msg
         @board = to
         throw :stop_polling
       end
-      log "progressing through status...\ncurrent_board is #{@board}"
+
+      log "updated current_board is #{@board}..."
     rescue Exception => e
       log "Problem updating status:\n#{e}"
+      die!
     end
   end
 

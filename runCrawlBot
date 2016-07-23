@@ -22,6 +22,6 @@ git checkout master
 git reset --hard origin/master
 git pull --rebase
 bundle install
-/home/ubuntu/.rbenv/shims/ruby crawl_bot.rb >> crawlBot.log | (log)
+/home/ubuntu/.rbenv/shims/ruby crawl_bot.rb &> crawlBot.log | (log)
 logger "Completed Script"
 exit 0

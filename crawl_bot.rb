@@ -8,12 +8,13 @@ class CrawlBot
   include Config
 
   def initialize
+    @count = 0
     begin
       @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
       @start_time = Time.now.to_i
       poll
     rescue Exception => e
-      log e
+      log "Rescued in initialize method #{e.message}"
       die!
     end
   end
@@ -25,7 +26,7 @@ class CrawlBot
         idle_timeout: 60,
         wait_time_seconds: nil,
         max_number_of_messages: 1,
-        visibility_timeout: 10 # keep message invisible long enough to process to wip
+        visibility_timeout: 10
       ) do |msg, stats|
         begin
           job = Job.new(msg, backlog_address)
@@ -81,7 +82,8 @@ class CrawlBot
   end
 
   def should_stop?
-    !!(time_is_up? ? death_ratio_acheived? : false)
+    2 <= (@count += 1)
+    # !!(time_is_up? ? death_ratio_acheived? : false)
   end
 
   def time_is_up?
