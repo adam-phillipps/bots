@@ -8,7 +8,6 @@ class CrawlBot
   include Config
 
   def initialize
-    @count = 0
     begin
       @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
       @start_time = Time.now.to_i
@@ -82,8 +81,7 @@ class CrawlBot
   end
 
   def should_stop?
-    2 <= (@count += 1)
-    # !!(time_is_up? ? death_ratio_acheived? : false)
+    !!(time_is_up? ? death_ratio_acheived? : false)
   end
 
   def time_is_up?
