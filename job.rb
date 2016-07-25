@@ -38,7 +38,10 @@ class Job
           '#{run_params[:title]}' >&2"
     )
 
-    throw :failed_job, error unless status.success?
+    unless status.success?
+      puts error
+      throw :failed_job
+    end
     puts results
 
     until Dir.glob('*data.json').first
@@ -68,6 +71,7 @@ class Job
       )
 
       unless finished_message.nil?
+        puts format_finished_body(message)
         throw :workflow_completed
       end
 
