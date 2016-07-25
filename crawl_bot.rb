@@ -13,7 +13,7 @@ class CrawlBot
       @start_time = Time.now.to_i
       poll
     rescue Exception => e
-      log "Rescued in initialize method #{e.message}"
+      puts "Rescued in initialize method #{e.message}"
       die!
     end
   end
@@ -28,33 +28,48 @@ class CrawlBot
         visibility_timeout: 10
       ) do |msg, stats|
         begin
+          delete_existing_jobs
+
           job = Job.new(msg, backlog_address)
-          job.valid? ? process_job(job) : process_invalid_job(job)
+          catch :workflow_completed do
+            job.valid? ? process_job(job) : process_invalid_job(job)
+          end
         rescue JSON::ParserError => e
-          log "Trouble with #{msg.body}:\n#{e}"
+          puts "Trouble with #{msg.body}:\n#{e}"
         end
-        log "Polling....\n"
+        puts "Polling....\n"
       end
     end
     die!
   end
 
-  def process_job(job)
-    log "Job found:\n#{job.message_body}"
-    job.update_status
+  def delete_existing_jobs
+    existing_json_files = Dir.glob('*.json').each do |file|
+      puts "deleting... #{file}"
+      File.delete(file)
+    end
+    puts "deleted:\n#{existing_json_files}"
+  end
 
-    job.run
-    job.update_status(job.finished_job)
+  def process_job(job)
+    catch :failed_job do
+      puts "Job found:\n#{job.message_body}"
+      job.update_status
+
+      job.run
+      job.update_status(job.finished_job)
+    end
 
     random_wait_time = rand(10) + 10
-    log "Finished job: #{job.run_params}\n \
+    puts "Finished job: #{job.run_params}\n \
       with:\n#{format_finished_body(job.finished_job)}\n \
         Sleeping for #{random_wait_time} seconds..."
+
     sleep(random_wait_time) # take this out when the logic moves to the java
   end
 
   def process_invalid_job(job)
-    log "invalid job:\n#{format_finished_body(job.message_body)}"
+    puts "invalid job:\n#{format_finished_body(job.message_body)}"
     sqs.delete_message(
       queue_url: backlog_address,
       receipt_handle: job.receipt_handle

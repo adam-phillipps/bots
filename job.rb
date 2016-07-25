@@ -1,3 +1,4 @@
+require 'open3'
 require_relative 'config'
 
 class Job
@@ -14,8 +15,7 @@ class Job
     begin
       File.read('data.json')
     rescue Errno::ENOENT => e
-      # throw :scraper_problem
-      log "There was a problem finding the finished file" +
+      puts "There was a problem finding the finished file" +
         "which usually means there was a problem between starting and finishing the crawler:\n#{e}"
       # die! # discuss
     end
@@ -29,25 +29,29 @@ class Job
   end
 
   def run
-    log "job running...\n#{run_params}"
+    puts "job running...\n#{run_params}"
 
-    Dir.glob('*.json').each { |file| File.delete(file) }
-
-    system(
-      "java -jar #{scraper} #{run_params[:product_id]} \"#{run_params[:title]}\""
+    error, results, status =
+      Open3.capture3(
+        "java -jar #{scraper} \
+          #{run_params[:product_id]} \
+          '#{run_params[:title]}' >&2"
     )
 
-    until Dir.glob('data.json').first
-      log "waiting for job to finish..."
+    throw :failed_job, error unless status.success?
+    puts results
+
+    until Dir.glob('*data.json').first
+      puts "waiting for job to finish. status: #{status}..."
       sleep 10
+      puts "finished job!\n#{run_params}"
     end
-    log "finished job!\n#{run_params}"
   end
 
   def update_status(finished_message = nil)
     begin
-      log "progressing through status...\n \
-        current_board is #{@board}"
+      puts "progressing through status...\n" +
+        "\tcurrent_board is #{@board}"
 
       from = @board
       to = next_board
@@ -63,6 +67,10 @@ class Job
         message_body: message
       )
 
+      unless finished_message.nil?
+        throw :workflow_completed
+      end
+
       poller(next_board_name).poll(
         idle_timeout: 60,
         skip_delete: true,
@@ -73,24 +81,15 @@ class Job
         throw :stop_polling
       end
 
-      log "updated current_board is #{@board}..."
+      puts "updated..\n\tcurrent board is #{@board}..."
     rescue Exception => e
-      log "Problem updating status:\n#{e}"
-      die!
+      puts "Problem updating status:\n#{e}"
+      throw e
     end
   end
 
   def next_board_name
-    case @board
-    when backlog_address
-      'wip'
-    when wip_address
-      'finished'
-    when bot_counter_address
-      'counter'
-    else
-      ''
-    end
+    @board == backlog_address ? 'wip' : 'finished'
   end
 
   def valid?
@@ -99,7 +98,7 @@ class Job
           @params.has_key?('productId') &&
             @params.has_key?('title')
         rescue Exception => e
-          log "invalid job!:\n#{self}\n\n#{e}"
+          puts "invalid job!:\n#{self}\n\n#{e}"
           false
         end
       )

@@ -10,10 +10,10 @@ class BotMaker
   begin
     def initialize
       begin
-        log "Begining to poll at #{Time.now}.."
+        puts "Begining to poll at #{Time.now}.."
         poll
       rescue Exception => e
-        log "Fatal error durring polling #{Time.now}:\n#{e}"
+        puts "Fatal error durring polling #{Time.now}:\n#{e}"
       end
     end
 
@@ -33,7 +33,7 @@ class BotMaker
 
     def run_program(desired_instance_count)
       if desired_instance_count > 0
-        log "#{Time.now}\n\tstart #{desired_instance_count} instances"
+        puts "#{Time.now}\n\tstart #{desired_instance_count} instances"
         max_request_size = 100 # safe maximum number of instances to request at once
         bot_ids = []
 
@@ -43,12 +43,12 @@ class BotMaker
           chunks.times { bot_ids.concat(spin_up_instances(max_request_size)) }
           bot_ids.concat(spin_up_instances(leftover))
 
-          log "started #{bot_ids.count} instances:\ninstance ids:\n\t#{bot_ids}"
+          puts "started #{bot_ids.count} instances:\ninstance ids:\n\t#{bot_ids}"
         rescue Aws::EC2::Errors::DryRunOperation => e
-          log e
+          puts e
         end
       else
-        log "#{Time.now}\n\treceived 0 requested instance count. starting 0 instances..."
+        puts "#{Time.now}\n\treceived 0 requested instance count. starting 0 instances..."
       end
     end
 
@@ -59,7 +59,7 @@ class BotMaker
       add_to_working_bots_count(ids)
 
       ec2.wait_until(:instance_running, instance_ids: ids) do
-        log "#{Time.now}\n\twaiting for #{ids.count} instances..."
+        puts "#{Time.now}\n\twaiting for #{ids.count} instances..."
       end
 
       ec2.create_tags(
