@@ -1,12 +1,12 @@
 require 'dotenv'
 Dotenv.load('.bot_maker.env')
-require_relative 'config'
+require_relative 'administrator'
 require 'byebug'
 require 'json'
 
 
 class TestData
-  include Config
+  include Administrator
 
   def add(number)
     number.times do |n|

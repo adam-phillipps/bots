@@ -1,11 +1,11 @@
 require 'dotenv'
 Dotenv.load(".crawl_bot.env")
 require 'json'
-require_relative 'config'
+require_relative 'administrator'
 require_relative 'job'
 
 class CrawlBot
-  include Config
+  include Administrator
 
   def initialize
     begin
@@ -87,6 +87,9 @@ class CrawlBot
   end
 
   def die!
+    compelling_reason = errors
+    reason =  should_stop? ? 'as intended' : 'error'
+    puts "going down for #{reason}..."
     poller('counter').poll(max_number_of_messages: 1) do |msg|
       poller('counter').delete_message(msg)
       throw :stop_polling

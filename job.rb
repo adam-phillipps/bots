@@ -1,8 +1,8 @@
 require 'open3'
-require_relative 'config'
+require_relative 'administrator'
 
 class Job
-  include Config
+  include Administrator
   attr_reader :message, :board
 
   def initialize(msg, board)
@@ -87,6 +87,7 @@ class Job
 
       puts "updated..\n\tcurrent board is #{@board}..."
     rescue Exception => e
+      errors[:ruby] << e
       puts "Problem updating status:\n#{e}"
       throw e
     end

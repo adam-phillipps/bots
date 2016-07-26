@@ -3,10 +3,10 @@ Dotenv.load('.bot_maker.env')
 require 'aws-sdk'
 require 'date'
 require 'securerandom'
-require_relative 'config'
+require_relative 'administrator'
 
 class BotMaker
-  include Config
+  include Administrator
   begin
     def initialize
       begin

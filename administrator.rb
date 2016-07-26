@@ -6,7 +6,7 @@ require 'logger'
 require 'io/console'
 require 'byebug'
 
-module Config
+module Administrator
   def poller(board)
     begin
       eval("#{board}_poller")
@@ -42,6 +42,10 @@ module Config
       region: region,
       credentials: creds
     )
+  end
+
+  def errors
+    @errors ||= { ruby: [], scraper: [] }
   end
 
   def backlog_address
