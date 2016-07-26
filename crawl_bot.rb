@@ -19,25 +19,27 @@ class CrawlBot
   end
 
   def poll
-    until should_stop? do
-      sleep rand(polling_sleep_time)
-      poller('backlog').poll(
-        idle_timeout: 60,
-        wait_time_seconds: nil,
-        max_number_of_messages: 1,
-        visibility_timeout: 10
-      ) do |msg, stats|
-        begin
-          delete_existing_jobs
+    catch :die do
+      until should_stop? do
+        sleep rand(polling_sleep_time)
+        poller('backlog').poll(
+          idle_timeout: 60,
+          wait_time_seconds: nil,
+          max_number_of_messages: 1,
+          visibility_timeout: 10
+        ) do |msg, stats|
+          begin
+            delete_existing_jobs
 
-          job = Job.new(msg, backlog_address)
-          catch :workflow_completed do
-            job.valid? ? process_job(job) : process_invalid_job(job)
+            job = Job.new(msg, backlog_address)
+            catch :workflow_completed do
+              job.valid? ? process_job(job) : process_invalid_job(job)
+            end
+          rescue JSON::ParserError => e
+            puts "Trouble with #{msg.body}:\n#{e}"
           end
-        rescue JSON::ParserError => e
-          puts "Trouble with #{msg.body}:\n#{e}"
+          puts "Polling....\n"
         end
-        puts "Polling....\n"
       end
     end
     die!
@@ -87,15 +89,20 @@ class CrawlBot
   end
 
   def die!
-    compelling_reason = errors
-    reason =  should_stop? ? 'as intended' : 'error'
-    puts "going down for #{reason}..."
+    notification_of_death
+
     poller('counter').poll(max_number_of_messages: 1) do |msg|
       poller('counter').delete_message(msg)
       throw :stop_polling
     end
+
     send_logs_to_s3
     ec2.terminate_instances(ids: [self_id])
+  end
+
+  def notification_of_death
+    blame = errors.sort.last.key
+    puts "The cause for the shutdown is #{blame}"
   end
 
   def should_stop?

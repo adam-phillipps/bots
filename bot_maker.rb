@@ -2,7 +2,6 @@ require 'dotenv'
 Dotenv.load('.bot_maker.env')
 require 'aws-sdk'
 require 'date'
-require 'securerandom'
 require_relative 'administrator'
 
 class BotMaker

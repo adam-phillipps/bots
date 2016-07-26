@@ -17,7 +17,6 @@ class Job
     rescue Errno::ENOENT => e
       puts "There was a problem finding the finished file" +
         "which usually means there was a problem between starting and finishing the crawler:\n#{e}"
-      # die! # discuss
     end
   end
 
@@ -39,9 +38,15 @@ class Job
     )
 
     unless status.success?
-      puts error
+      if error.size > 0
+        puts error
+        errors[:java] << error
+      end
+
+      die! if errors[:java].count >= 3
       throw :failed_job
     end
+
     puts results
 
     until Dir.glob('*data.json').first
@@ -59,16 +64,10 @@ class Job
       from = @board
       to = next_board
 
-      sqs.delete_message(
-        queue_url: from,
-        receipt_handle: receipt_handle
-      )
+      sqs.delete_message(queue_url: from, receipt_handle: receipt_handle)
 
       message = finished_message.nil? ? message_body : finished_message
-      sqs.send_message(
-        queue_url: to,
-        message_body: message
-      )
+      sqs.send_message(queue_url: to, message_body: message)
 
       unless finished_message.nil?
         puts format_finished_body(message)
@@ -87,9 +86,9 @@ class Job
 
       puts "updated..\n\tcurrent board is #{@board}..."
     rescue Exception => e
-      errors[:ruby] << e
+      errors[:workflow] << e
       puts "Problem updating status:\n#{e}"
-      throw e
+      throw :die if errors[:workflow].count > 3
     end
   end
 
@@ -103,7 +102,9 @@ class Job
           @params.has_key?('productId') &&
             @params.has_key?('title')
         rescue Exception => e
+          errors[:workflow] << e
           puts "invalid job!:\n#{self}\n\n#{e}"
+          throw :die if errors[:workflow].count > 3
           false
         end
       )

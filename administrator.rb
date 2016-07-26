@@ -45,7 +45,7 @@ module Administrator
   end
 
   def errors
-    @errors ||= { ruby: [], scraper: [] }
+    @errors ||= { ruby: [], scraper: [], workflow: [] }
   end
 
   def backlog_address
@@ -104,7 +104,7 @@ module Administrator
   end
 
   def format_finished_body(body)
-    body.split(' ')[0..10].join(' ') + '...'
+    body.split(' ')[0..25].join(' ') + '...'
   end
 
   def send_logs_to_s3
