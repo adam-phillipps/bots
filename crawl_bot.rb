@@ -101,7 +101,7 @@ class CrawlBot
   end
 
   def notification_of_death
-    blame = errors.sort.last.key
+    blame = errors.sort.last.first
     puts "The cause for the shutdown is #{blame}"
   end
 
