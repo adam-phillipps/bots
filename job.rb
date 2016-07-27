@@ -5,9 +5,10 @@ class Job
   include Administrator
   attr_reader :message, :board
 
-  def initialize(msg, board)
+  def initialize(msg, board, user_agent)
     @message = msg
     @params = JSON.parse(msg.body)
+    @params[:user_agent] = user_agent
     @board = board
   end
 
@@ -34,16 +35,17 @@ class Job
       Open3.capture3(
         "java -jar #{scraper} \
           #{run_params[:product_id]} \
-          '#{run_params[:title]}' >&2"
+          '#{run_params[:title]}' \
+          '#{run_params[:user_agent]}'>&2"
     )
 
     unless status.success?
       if error.size > 0
         puts error
-        errors[:java] << error
+        errors[:scraper] << error
       end
 
-      die! if errors[:java].count >= 3
+      die! if errors[:scraper].count >= 3
       throw :failed_job
     end
 
@@ -86,7 +88,7 @@ class Job
 
       puts "updated..\n\tcurrent board is #{@board}..."
     rescue Exception => e
-      errors[:workflow] << e
+      errors[:workflow] << e.backtrace.join('\n')
       puts "Problem updating status:\n#{e}"
       throw :die if errors[:workflow].count > 3
     end
@@ -102,7 +104,7 @@ class Job
           @params.has_key?('productId') &&
             @params.has_key?('title')
         rescue Exception => e
-          errors[:workflow] << e
+          errors[:workflow] << e.backtrace.join('\n')
           puts "invalid job!:\n#{self}\n\n#{e}"
           throw :die if errors[:workflow].count > 3
           false

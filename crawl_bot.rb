@@ -3,17 +3,21 @@ Dotenv.load(".crawl_bot.env")
 require 'json'
 require_relative 'administrator'
 require_relative 'job'
+require_relative 'user_agents'
 
 class CrawlBot
   include Administrator
+  include UserAgents
 
   def initialize
     begin
+
       @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
       @start_time = Time.now.to_i
       poll
     rescue Exception => e
-      puts "Rescued in initialize method #{e.message}"
+      puts "Rescued in initialize method #{e.message}:"
+      puts e.backtrace
       die!
     end
   end
@@ -31,7 +35,7 @@ class CrawlBot
           begin
             delete_existing_jobs
 
-            job = Job.new(msg, backlog_address)
+            job = Job.new(msg, backlog_address, user_agent)
             catch :workflow_completed do
               job.valid? ? process_job(job) : process_invalid_job(job)
             end
