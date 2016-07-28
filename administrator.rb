@@ -6,13 +6,15 @@ require 'logger'
 require 'io/console'
 require 'byebug'
 
+require_relative 'logger_util'
+
 module Administrator
   def poller(board)
     begin
       eval("#{board}_poller")
     rescue NameError => e
       unless board == ''
-        puts "There isn't a '#{board}' poller available...\n#{e}"
+        LoggerUtil.error("There isn't a '#{board}' poller available...\n#{e}")        
       end
     end
   end
