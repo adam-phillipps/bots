@@ -1,5 +1,7 @@
 require 'open3'
+
 require_relative 'administrator'
+require_relative 'logger_util'
 
 class Job
   include Administrator
@@ -16,8 +18,8 @@ class Job
     begin
       File.read('data.json')
     rescue Errno::ENOENT => e
-      puts "There was a problem finding the finished file" +
-        "which usually means there was a problem between starting and finishing the crawler:\n#{e}"
+      LoggerUtil.error("There was a problem finding the finished file" +
+        "which usually means there was a problem between starting and finishing the crawler:\n#{e}")      
     end
   end
 
@@ -29,7 +31,7 @@ class Job
   end
 
   def run
-    puts "job running...\n#{run_params}"
+    LoggerUtil.info("job running...\n#{run_params}")  
 
     error, results, status =
       Open3.capture3(
@@ -41,7 +43,7 @@ class Job
 
     unless status.success?
       if error.size > 0
-        puts error
+        LoggerUtil.error(error)     
         errors[:scraper] << error
       end
 
@@ -49,19 +51,19 @@ class Job
       throw :failed_job
     end
 
-    puts results
+    LoggerUtil.info(results)  
 
     until Dir.glob('*data.json').first
-      puts "waiting for job to finish. status: #{status}..."
+      LoggerUtil.info("waiting for job to finish. status: #{status}...")
       sleep 10
-      puts "finished job!\n#{run_params}"
+      LoggerUtil.info("finished job!\n#{run_params}")     
     end
   end
 
   def update_status(finished_message = nil)
     begin
-      puts "progressing through status...\n" +
-        "\tcurrent_board is #{@board}"
+      LoggerUtil.info("progressing through status...\n" +
+        "\tcurrent_board is #{@board}")      
 
       from = @board
       to = next_board
@@ -72,7 +74,7 @@ class Job
       sqs.send_message(queue_url: to, message_body: message)
 
       unless finished_message.nil?
-        puts format_finished_body(message)
+        LoggerUtil.info(format_finished_body(message))        
         throw :workflow_completed
       end
 
@@ -86,10 +88,10 @@ class Job
         throw :stop_polling
       end
 
-      puts "updated..\n\tcurrent board is #{@board}..."
+      LoggerUtil.info("updated..\n\tcurrent board is #{@board}...")      
     rescue Exception => e
       errors[:workflow] << e.backtrace.join('\n')
-      puts "Problem updating status:\n#{e}"
+      LoggerUtil.error("Problem updating status:\n#{e}")      
       throw :die if errors[:workflow].count > 3
     end
   end
@@ -105,7 +107,7 @@ class Job
             @params.has_key?('title')
         rescue Exception => e
           errors[:workflow] << e.backtrace.join('\n')
-          puts "invalid job!:\n#{self}\n\n#{e}"
+          LoggerUtil.error("invalid job!:\n#{self}\n\n#{e}")          
           throw :die if errors[:workflow].count > 3
           false
         end
