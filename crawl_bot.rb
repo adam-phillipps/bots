@@ -4,7 +4,6 @@ require 'json'
 require_relative 'administrator'
 require_relative 'job'
 require_relative 'user_agents'
-require_relative 'logger_util'
 
 class CrawlBot
   include Administrator
@@ -17,8 +16,8 @@ class CrawlBot
       @start_time = Time.now.to_i
       poll
     rescue Exception => e
-      LoggerUtil.error("Rescued in initialize method #{e.message}:")
-      LoggerUtil.error(e.backtrace)
+      logger.error("Rescued in initialize method #{e.message}:")
+      logger.error(e.backtrace)
       die!
     end
   end
@@ -41,9 +40,11 @@ class CrawlBot
               job.valid? ? process_job(job) : process_invalid_job(job)
             end
           rescue JSON::ParserError => e
-            LoggerUtil.error("Trouble with #{msg.body}:\n#{e}")           
+            error_message = e.message + "\n" + e.backtrace.join("\n")
+            errors[:workflow] << error_message
+            logger.error("Trouble with #{msg.body}:\n#{error_message}")
           end
-          LoggerUtil.info("Polling....\n")          
+          logger.info("Polling....\n")
         end
       end
     end
@@ -52,15 +53,15 @@ class CrawlBot
 
   def delete_existing_jobs
     existing_json_files = Dir.glob('*.json').each do |file|
-      LoggerUtil.info("deleting... #{file}")      
+      logger.info("deleting #{file}...")
       File.delete(file)
     end
-    LoggerUtil.info("deleted:\n#{existing_json_files}")    
+    logger.info("deleted:\n#{existing_json_files}")
   end
 
   def process_job(job)
     catch :failed_job do
-      LoggerUtil.info("Job found:\n#{job.message_body}")
+      logger.info("Job found:\n#{job.message_body}")
       job.update_status
 
       job.run
@@ -68,15 +69,15 @@ class CrawlBot
     end
 
     random_wait_time = rand(10) + 10
-    LoggerUtil.info("Finished job: #{job.run_params}\n \
+    logger.info("Finished job: #{job.run_params}\n \
       with:\n#{format_finished_body(job.finished_job)}\n \
-        Sleeping for #{random_wait_time} seconds...")    
+        Sleeping for #{random_wait_time} seconds...")
 
     sleep(random_wait_time) # take this out when the logic moves to the java
   end
 
   def process_invalid_job(job)
-    LoggerUtil.info("invalid job:\n#{format_finished_body(job.message_body)}")    
+    logger.info("invalid job:\n#{format_finished_body(job.message_body)}")
     sqs.delete_message(
       queue_url: backlog_address,
       receipt_handle: job.receipt_handle
@@ -107,7 +108,7 @@ class CrawlBot
 
   def notification_of_death
     blame = errors.sort.last.first
-    LoggerUtil.info("The cause for the shutdown is #{blame}")    
+    logger.info("The cause for the shutdown is #{blame}")
   end
 
   def should_stop?

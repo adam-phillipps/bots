@@ -8,11 +8,11 @@ require 'json'
 class TestData
   include Administrator
 
-  def add(number)
+  def add(number, board = backlog_address)
     number.times do |n|
       puts n
       sqs.send_message(
-        queue_url: wip_address,
+        queue_url: board,
         message_body: {
           "productId":2645,
           "title":"Z by Malouf Z Wedge Pillow with Cover"
@@ -55,6 +55,6 @@ class TestData
 end
 
 
-# TestData.new.add(1)
-# TestData.new.delete('backlog')
+# TestData.new.add(10)
+# TestData.new.delete('wip')
 # TestData.new.terminate_instances
