@@ -5,10 +5,10 @@ class Job
   include Administrator
   attr_reader :message, :board
 
-  def initialize(msg, board, user_agent)
+  def initialize(msg, board, search_environment)
     @message = msg
     @params = JSON.parse(msg.body)
-    @params['user_agent'] = user_agent
+    @params['user_agent'] = search_environment
     @board = board
   end
 
