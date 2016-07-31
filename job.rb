@@ -8,7 +8,7 @@ class Job
   def initialize(msg, board, user_agent)
     @message = msg
     @params = JSON.parse(msg.body)
-    @params[:user_agent] = user_agent
+    @params['user_agent'] = user_agent
     @board = board
   end
 
@@ -26,7 +26,8 @@ class Job
   def run_params # refactor this.  it's just key.to_sym
     @run_params ||= {
       product_id: @params['productId'],
-      title: @params['title']
+      title: @params['title'],
+      user_agent: @params['user_agent']
     }
   end
 
@@ -35,10 +36,10 @@ class Job
 
     error, results, status =
       Open3.capture3(
-        "java -jar #{scraper} \
-          #{run_params[:product_id]} \
-          '#{run_params[:title]}' \
-          '#{run_params[:user_agent]}'>&2"
+        "java -jar #{scraper} " +
+          "#{run_params[:product_id]} " +
+          "\"#{run_params[:title]}\" " +
+          "\"#{run_params[:user_agent]}\">&2"
     )
 
     unless status.success?
