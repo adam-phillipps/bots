@@ -1,5 +1,5 @@
 require 'dotenv'
-Dotenv.load('.crawl_bot.env')
+Dotenv.load('.bot_maker.env')
 require_relative 'administrator'
 require 'byebug'
 require 'json'
@@ -8,15 +8,14 @@ require 'json'
 class TestData
   include Administrator
 
-  def add(number)
+  def add(number, board = backlog_address)
     number.times do |n|
-      puts backlog_address
-      puts "Adding message #{n}"
+      puts n
       sqs.send_message(
-        queue_url: backlog_address,
+        queue_url: board,
         message_body: {
-          :productId => 2645,
-          :title => "Z by Malouf Z Wedge Pillow with Cover"
+          "productId":2645,
+          "title":"Z by Malouf Z Wedge Pillow with Cover"
         }.to_json
       )
     end
@@ -56,6 +55,6 @@ class TestData
 end
 
 
-TestData.new.add(1)
-# TestData.new.delete('backlog')
+# TestData.new.add(10)
+# TestData.new.delete('wip')
 # TestData.new.terminate_instances

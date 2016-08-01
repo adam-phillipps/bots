@@ -3,10 +3,7 @@ Aws.use_bundled_cert!
 require 'httparty'
 require 'syslog/logger'
 require 'logger'
-require 'io/console'
 require 'byebug'
-
-require_relative 'logger_util'
 
 module Administrator
   def poller(board)
@@ -14,7 +11,7 @@ module Administrator
       eval("#{board}_poller")
     rescue NameError => e
       unless board == ''
-        LoggerUtil.error("There isn't a '#{board}' poller available...\n#{e}")        
+        logger.error("There isn't a '#{board}' poller available...\n#{e}")
       end
     end
   end
@@ -99,10 +96,14 @@ module Administrator
     @filename ||= ENV['LOG_FILE']
   end
 
-  def log(message)
-    msg = "#{message} \n"
-    print msg
-    IO.write filename, msg
+  def logger
+    @logger ||= create_logger
+  end
+
+  def create_logger
+    logger = Logger.new(STDOUT)
+    logger.datetime_format = '%Y-%m-%d %H:%M:%S'
+    logger
   end
 
   def format_finished_body(body)
