@@ -13,4 +13,5 @@ gem 'activesupport-core-ext'
 group :test, :development do
   gem 'rspec-rails'
   gem 'byebug'
+  gem 'mysql'
 end
