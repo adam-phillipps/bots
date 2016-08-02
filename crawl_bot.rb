@@ -39,6 +39,7 @@ class CrawlBot
             catch :workflow_completed do
               job.valid? ? process_job(job) : process_invalid_job(job)
             end
+            wait_for_search(job)
           rescue JSON::ParserError => e
             error_message = e.message + "\n" + e.backtrace.join("\n")
             errors[:workflow] << error_message
@@ -49,6 +50,15 @@ class CrawlBot
       end
     end
     die!
+  end
+
+  def wait_for_search(job)
+    random_wait_time = rand(10) + 10
+    logger.info("Finished job: #{job.run_params}\n \
+      with:\n#{format_finished_body(job.finished_job)}\n \
+      Sleeping for #{random_wait_time} seconds...")
+
+    sleep(random_wait_time) # take this out when the logic moves to the java
   end
 
   def delete_existing_jobs
@@ -66,14 +76,7 @@ class CrawlBot
 
       job.run
       job.update_status(job.finished_job)
-    end
-
-    random_wait_time = rand(10) + 10
-    logger.info("Finished job: #{job.run_params}\n \
-      with:\n#{format_finished_body(job.finished_job)}\n \
-        Sleeping for #{random_wait_time} seconds...")
-
-    sleep(random_wait_time) # take this out when the logic moves to the java
+    end    
   end
 
   def process_invalid_job(job)
