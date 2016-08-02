@@ -42,6 +42,8 @@ class Job
           "\"#{run_params[:user_agent]}\">&2"
     )
 
+    logger.info("jar status... #{status}")
+
     unless status.success?
       if error.size > 0
         logger.error("scraper error:\n" + error)
