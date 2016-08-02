@@ -42,13 +42,14 @@ class Job
           "\"#{run_params[:user_agent]}\">&2"
     )
 
-    logger.info("jar status... #{status}")
-    logger.info("jar error... #{error}")
-    logger.info("jar results... #{results}")
-
     unless status.success?
-      logger.error(results)     
-      die! if status.success?
+      logger.info(results)
+      if error.size > 0
+        logger.error("scraper error:\n" + error)
+        errors[:scraper] << error
+      end
+
+      die! if errors[:scraper].count >= 3
       throw :failed_job
     end
 
