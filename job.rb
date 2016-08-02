@@ -43,10 +43,10 @@ class Job
     )
 
     unless status.success?
-      logger.info(results)
+      errors[:scraper] << error
+
       if error.size > 0
         logger.error("scraper error:\n" + error)
-        errors[:scraper] << error
       end
 
       die! if errors[:scraper].count >= 3
