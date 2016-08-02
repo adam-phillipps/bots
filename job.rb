@@ -43,6 +43,7 @@ class Job
     )
 
     unless status.success?
+      logger.error(results)
       errors[:scraper] << error
 
       if error.size > 0
