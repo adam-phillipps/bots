@@ -47,12 +47,8 @@ class Job
     logger.info("jar results... #{results}")
 
     unless status.success?
-      if error.size > 0
-        logger.error("scraper error:\n" + error)
-        errors[:scraper] << error
-      end
-
-      die! if errors[:scraper].count >= 3
+      logger.error(results)     
+      die! if status.success?
       throw :failed_job
     end
 
