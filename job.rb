@@ -43,6 +43,8 @@ class Job
     )
 
     logger.info("jar status... #{status}")
+    logger.info("jar error... #{error}")
+    logger.info("jar results... #{results}")
 
     unless status.success?
       if error.size > 0
