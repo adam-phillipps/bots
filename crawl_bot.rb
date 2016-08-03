@@ -53,7 +53,7 @@ class CrawlBot
   end
 
   def wait_for_search(job)
-    random_wait_time = rand(10) + 10
+    random_wait_time = rand(15) + 10
     logger.info("Finished job: #{job.run_params}\n \
       with:\n#{format_finished_body(job.finished_job)}\n \
       Sleeping for #{random_wait_time} seconds...")
