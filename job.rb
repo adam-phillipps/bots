@@ -19,7 +19,7 @@ class Job
       logger.error('There was a problem finding the finished file' +
         'which usually means there was a problem between starting and finishing the crawler:')
       logger.error e.message
-      logger.error e.backtrace.join.("\n")
+      logger.error e.backtrace.join("\n")
     end
   end
 

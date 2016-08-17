@@ -12,6 +12,5 @@ gem 'gmail'
 gem 'activesupport-core-ext'
 
 group :test, :development do
-  gem 'rspec-rails'
   gem 'byebug'
 end

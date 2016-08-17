@@ -6,6 +6,10 @@ require 'logger'
 require 'byebug'
 
 module Administrator
+  def self_id
+    @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
+  end
+
   def poller(board)
     begin
       eval("#{board}_poller")
@@ -44,7 +48,7 @@ module Administrator
   end
 
   def errors
-    @errors ||= { ruby: [], scraper: [], workflow: [] }
+    $errors ||= { ruby: [], scraper: [], workflow: [] }
   end
 
   def backlog_address
@@ -77,12 +81,6 @@ module Administrator
 
   def jobs_ratio_denominator
     @jobs_ratio_denominator ||= ENV['RATIO_DENOMINATOR'].to_i
-  end
-
-  def ec2
-    @ec2 ||= Aws::EC2::Client.new(
-      region: region,
-      credentials: creds)
   end
 
   def get_count(board)
@@ -122,5 +120,27 @@ module Administrator
 
   def log_bucket
     @log_bucket ||= ENV['LOGS_BUCKET']
+  end
+
+  def die!
+    notification_of_death
+
+    poller('counter').poll(max_number_of_messages: 1) do |msg|
+      poller('counter').delete_message(msg)
+      throw :stop_polling
+    end
+
+    poller('wip').poll(max_number_of_messages: 1) do |msg|
+      poller('wip').delete_message(msg)
+      throw :stop_polling
+    end
+
+    send_logs_to_s3
+    ec2.terminate_instances(ids: [self_id])
+  end
+
+  def notification_of_death
+    blame = errors.sort_by(&:reverse).last.first
+    logger.info("The cause for the shutdown is #{blame}")
   end
 end
