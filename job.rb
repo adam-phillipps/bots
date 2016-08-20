@@ -3,64 +3,32 @@ require_relative 'administrator'
 
 class Job
   include Administrator
-  attr_reader :message, :board
+  attr_reader :board, :instance_id, :message
 
-  def initialize(msg, board, search_environment)
+  def initialize(msg, instance_id)
+    @instance_id = instance_id
     @message = msg
+    @board = backlog_address
     @params = JSON.parse(msg.body)
-    @params['user_agent'] = search_environment
-    @board = board
   end
 
   def finished_job
     begin
-      File.read('data.json')
-    rescue Errno::ENOENT => e
-      logger.error('There was a problem finding the finished file' +
-        'which usually means there was a problem between starting and finishing the crawler:')
-      logger.error e.message
-      logger.error e.backtrace.join("\n")
+      { instanceid: @instance_id }.merge(run_params).to_json
+    rescue Exception => e
+      logger.error([e.message, e.backtrace.join("\n")].join("\n"))
     end
   end
 
   def run_params # refactor this.  it's just key.to_sym
-    @run_params ||= {
-      product_id: @params['productId'],
-      title: @params['title'],
-      user_agent: @params['user_agent']
-    }
+    @run_params ||= { category: @params['category'] }
   end
 
   def run
     logger.info("job running...\n#{run_params}")
-
-    error, results, status =
-      Open3.capture3(
-        "java -jar #{scraper} " +
-          "#{run_params[:product_id]} " +
-          "\"#{run_params[:title]}\" " +
-          "\"#{run_params[:user_agent]}\">&2"
-    )
-
-    unless status.success?
-      logger.error(results)
-      errors[:scraper] << error
-
-      if error.size > 0
-        logger.error("scraper error:\n" + error)
-      end
-
-      die! if errors[:scraper].count >= 3
-      throw :failed_job
-    end
-
-    logger.info(results)
-
-    until Dir.glob('*data.json').first
-      logger.info("waiting for job to finish. status: #{status}...")
-      sleep 10
-      logger.info("finished job!\n#{run_params}")
-    end
+    logger.info("waiting for job to finish...")
+    sleep(10)
+    logger.info("finished job!\n#{finished_job}")
   end
 
   def update_status(finished_message = nil)
@@ -105,18 +73,15 @@ class Job
   end
 
   def valid?
-    !!(
-        begin
-          @params.has_key?('productId') &&
-            @params.has_key?('title')
-        rescue Exception => e
-          error_message = "workflow error:\n#{e.message}\n" + e.backtrace.join('\n')
-          errors[:workflow] << e.backtrace.join("\n")
-          logger.error("invalid job!:\n#{self}\n#{error_message}")
-          throw :die if errors[:workflow].count > 3
-          false
-        end
-      )
+    begin
+      @params.has_key?('category')
+    rescue Exception => e
+      error_message = "workflow error:\n#{e.message}\n" + e.backtrace.join('\n')
+      errors[:workflow] << e.backtrace.join("\n")
+      logger.error("invalid job!:\n#{self}\n#{error_message}")
+      throw :die if errors[:workflow].count > 3
+      false
+    end
   end
 
   def message_body

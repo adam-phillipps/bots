@@ -1,6 +1,5 @@
 require 'dotenv'
 Dotenv.load(".crawl_bot.env")
-require 'json'
 require_relative 'administrator'
 require_relative 'job'
 require_relative 'user_agents'
@@ -11,9 +10,10 @@ class CrawlBot
 
   def initialize
     begin
-
       @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
-      @start_time = Time.now.to_i
+      @start_time = boot_time
+
+      Thread.new { send_frequent_status_updates() }
       poll
     rescue Exception => e
       logger.error("Rescued in initialize method #{e.message}:")
@@ -35,7 +35,7 @@ class CrawlBot
           begin
             delete_existing_jobs
 
-            job = Job.new(msg, backlog_address, user_agent)
+            job = Job.new(msg, self_id)
             catch :failed_job do
               catch :workflow_completed do
                 job.valid? ? process_job(job) : process_invalid_job(job)
@@ -55,12 +55,12 @@ class CrawlBot
   end
 
   def wait_for_search(job)
-    random_wait_time = rand(18) + 10
+    wait_time = 10
     logger.info("Finished job: #{job.run_params}\n \
       with:\n#{format_finished_body(job.finished_job)}\n \
-      Sleeping for #{random_wait_time} seconds...")
+      Sleeping for #{wait_time} seconds...")
 
-    sleep(random_wait_time) # take this out when the logic moves to the java
+    sleep(wait_time) # take this out when the logic moves to the java
   end
 
   def delete_existing_jobs
@@ -85,12 +85,6 @@ class CrawlBot
       queue_url: backlog_address,
       receipt_handle: job.receipt_handle
     )
-  end
-
-  def boot_time
-    @instance_boot_time ||=
-      bot_ec2.describe_instances(instance_ids:[self_id]).
-        reservations[0].instances[0].launch_time.to_i
   end
 
   def should_stop?

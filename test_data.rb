@@ -14,8 +14,7 @@ class TestData
       sqs.send_message(
         queue_url: board,
         message_body: {
-          "productId":2645,
-          "title":"Z by Malouf Z Wedge Pillow with Cover"
+          'category': ['traffic','visit','aliens'].sample
         }.to_json
       )
     end
@@ -55,6 +54,6 @@ class TestData
 end
 
 
-# TestData.new.add(10)
-# TestData.new.delete('wip')
+# TestData.new.add(50)
+TestData.new.delete('wip')
 # TestData.new.terminate_instances
