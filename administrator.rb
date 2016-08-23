@@ -184,10 +184,8 @@ module Administrator
 
     update_status_checks(self_id, message)
     sqs.send_message(
-      {
-        queue_url: status_address,
-        message_body: message
-      }.to_json
+      queue_url: status_address,
+      message_body: message
     )
     sqs.send_message(
       queue_url: needs_attention_address,
@@ -230,22 +228,22 @@ module Administrator
             records: ids.map { |id| { data: status, partition_key: id } }
           )
 
-          if resp.failed_count > 0
+          if resp.failed_record_count > 0
             logger.info "Failed stream update count: #{resp.failed_record_count}\n" +
               "Error(s):\n#{resp.records.map(&:error_message).join("\n")}"
+            failed_resps = resp.records.select { |r| r.body unless r.successful? }
+            logger.info "failed to start: #{failed_resps.join("\n")}"
           end
 
           @last_sequence_number = resp.records.map(&:sequence_number).sort.last
 
-          failed_resps = resp.records.select { |r| r.body unless r.successful? }
           # TODO:
           # get the ids and send_status_to_stream again
-          logger.info "failed to start: #{failed_resps.join("\n")}"
 
           it_worked = true
         end
         it_worked
-      rescue ResourceNotFoundException => e
+      rescue Aws::Kinesis::Errors::ResourceNotFoundException => e
         create_stream
       end
     end
