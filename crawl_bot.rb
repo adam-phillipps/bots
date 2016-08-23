@@ -2,11 +2,9 @@ require 'dotenv'
 Dotenv.load(".crawl_bot.env")
 require_relative 'administrator'
 require_relative 'job'
-require_relative 'user_agents'
 
 class CrawlBot
   include Administrator
-  include UserAgents
 
   def initialize
     begin
@@ -16,8 +14,8 @@ class CrawlBot
       Thread.new { send_frequent_status_updates() }
       poll
     rescue Exception => e
-      logger.error("Rescued in initialize method #{e.message}:")
-      logger.error(e.backtrace)
+      logger.error("Rescued in initialize method:\n" +
+        "#{[e.message, e.backtrace.join("\n")].join("\n")}")
       die!
     end
   end
