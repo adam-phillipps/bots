@@ -11,7 +11,7 @@ class CrawlBot
       @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
       @start_time = boot_time
 
-      Thread.new { send_frequent_status_updates() }
+      @status_thread = Thread.new { send_frequent_status_updates() }
       poll
     rescue Exception => e
       logger.error("Rescued in initialize method:\n" +

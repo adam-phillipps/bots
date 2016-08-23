@@ -1,5 +1,5 @@
 require 'dotenv'
-Dotenv.load('.bot_maker.env')
+Dotenv.load('.crawl_bot.env')
 require_relative 'administrator'
 require 'byebug'
 require 'json'
