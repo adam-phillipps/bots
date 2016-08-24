@@ -125,7 +125,7 @@ module Administrator
   end
 
   def ami_name
-    @ami_name ||= ENV['AMI_NAME'] 'crawlbotprod'
+    @ami_name ||= ENV['AMI_NAME'] || 'crawlbotprod'
   end
 
   def log_file
