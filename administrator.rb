@@ -124,8 +124,12 @@ module Administrator
     count
   end
 
-  def filename
-    @filename ||= ENV['LOG_FILE']
+  def ami_name
+    @ami_name ||= ENV['AMI_NAME'] 'crawlbotprod'
+  end
+
+  def log_file
+    @log_file ||= ENV['LOG_FILE']
   end
 
   def logger
@@ -143,7 +147,7 @@ module Administrator
   end
 
   def send_logs_to_s3
-    File.open(filename) do |file|
+    File.open(log_file) do |file|
       s3.put_object(
         bucket: log_bucket,
         key: self_id,
@@ -157,7 +161,7 @@ module Administrator
   end
 
   def die!
-    Thread.kill(@status_thread)
+    Thread.kill(@status_thread) unless @status_thread.nil?
     notification_of_death
 
     poller('counter').poll(max_number_of_messages: 1) do |msg|
