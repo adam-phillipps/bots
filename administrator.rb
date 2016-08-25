@@ -1,3 +1,5 @@
+require 'dotenv'
+Dotenv.load(".crawl_bot.env")
 require 'aws-sdk'
 Aws.use_bundled_cert!
 require 'httparty'
