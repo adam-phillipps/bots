@@ -1,5 +1,5 @@
 #!/bin/sh
 #!/usr/bin/env ruby
-
-exec /home/ubuntu/.rbenv/shims/ruby /home/ubuntu/crawler/crawl_bot.rb
+cd /home/ubuntu/crawler
+exec /home/ubuntu/.rbenv/shims/ruby crawl_bot.rb
 exit 0
