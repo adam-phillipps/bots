@@ -120,6 +120,19 @@ class CrawlBot
     )
   end
 
+  def for_each_id_send_message_to(board, ids, message)
+    ids.each do |id|
+
+      sqs.send_message(
+        queue_url: board,
+        message_body: { "#{id}": "#{message}" }.to_json
+      )
+      # TODO:
+      # resend unsuccessful messages
+    end
+    true
+  end
+
   def creds
     @creds ||= Aws::Credentials.new(
       ENV['AWS_ACCESS_KEY_ID'],
