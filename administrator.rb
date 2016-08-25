@@ -206,7 +206,6 @@ module Administrator
       ids,
       status
     )
-    send_status_to_stream(ids, status)
   end
 
   def send_status_to_stream(ids, status)
@@ -305,6 +304,12 @@ module Administrator
         reservations[0].instances[0].state.name
       logger.info "Send update to status board #{update_message_body}"
 
+      send_status_to_stream(
+        self_id, update_message_body(
+          type: 'status-update',
+          content: status
+        )
+      )
       update_status_checks(self_id, update_message_body)
       sleep sleep_time
     end
