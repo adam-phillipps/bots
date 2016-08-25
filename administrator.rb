@@ -16,7 +16,7 @@ module Administrator
 
   def self_id
     # 'test-id' # comment the below line for development mode
-    @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id')
+    @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id').parsed_response
   end
 
   def poller(board)
