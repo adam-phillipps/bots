@@ -1,7 +1,7 @@
-# require 'dotenv'
-# Dotenv.load(".crawl_bot.env")
+require 'dotenv'
+Dotenv.load("/home/ubuntu/crawler/.crawl_bot.env")
 require 'aws-sdk'
-# Aws.use_bundled_cert!
+Aws.use_bundled_cert!
 require 'httparty'
 require 'syslog/logger'
 require 'logger'

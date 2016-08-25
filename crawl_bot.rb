@@ -1,5 +1,5 @@
-# require 'dotenv'
-# Dotenv.load(".crawl_bot.env")
+require 'dotenv'
+Dotenv.load("/home/ubuntu/crawler/.crawl_bot.env")
 require_relative 'administrator'
 require_relative 'job'
 
