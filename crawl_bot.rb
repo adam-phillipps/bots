@@ -8,10 +8,9 @@ class CrawlBot
 
   def initialize
     begin
-      @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
-      @start_time = boot_time
 
-      # @status_thread = Thread.new { send_frequent_status_updates() }
+
+      @status_thread = Thread.new { send_frequent_status_updates() }
       poll
     rescue Exception => e
       logger.error("Rescued in initialize method:\n" +
@@ -88,7 +87,11 @@ class CrawlBot
   end
 
   def time_is_up?
-    !!((@start_time + @run_time) >= Time.now.to_i)
+    (run_time % 60) > 5
+  end
+
+  def run_time
+    Time.now.to_i - boot_time
   end
 
   def death_ratio_acheived?
@@ -97,13 +100,13 @@ class CrawlBot
 
   def current_ratio
     backlog = get_count(backlog_address)
-    wip = get_count(wip_address)
+    wip = get_count(bot_counter_address)
 
-    (((1.0 / jobs_ratio_denominator) * backlog) - wip).ceil
+    ((death_threashold * backlog) - wip).ceil
   end
 
   def death_threashold
-    @death_threashold ||= 1.0 / ENV['RATIO_DENOMINATOR'].to_f
+    @death_threashold ||= (1.0 / jobs_ratio_denominator.to_f)
   end
 
   def polling_sleep_time

@@ -20,14 +20,18 @@ class Job
 
   def finished_job
     begin
-      { instanceid: @instance_id }.merge(run_params).to_json
+      update_message_body(
+        type: 'SitRep',
+        content: 'job-finished',
+        extraInfo: @params
+      )
     rescue Exception => e
-      logger.error([e.message, e.backtrace.join("\n")].join("\n"))
+      logger.error format_error_message(e)
     end
   end
 
   def run_params # refactor this.  it's just key.to_sym
-    @run_params ||= { category: @params['category'] }
+    @run_params ||= @params
   end
 
   def run
@@ -47,9 +51,18 @@ class Job
 
       sqs.delete_message(queue_url: from, receipt_handle: receipt_handle)
 
-      message = finished_message.nil? ? message_body : finished_message
-      sqs.send_message(queue_url: to, message_body: message)
+      status = to == finished_address ? 'job-finished' : 'job-running'
+      message = to == finished_address ? finished_message : message_body
 
+      send_status_to_stream(
+        self_id, update_message_body(
+          type: 'SitRep',
+          content: status,
+          extraInfo: message
+        )
+      )
+
+      sqs.send_message(queue_url: to, message_body: message)
       unless finished_message.nil?
         logger.info(format_finished_body(message))
         throw :workflow_completed
@@ -74,8 +87,8 @@ class Job
     end
   end
 
-  def next_board_name
-    @board == backlog_address ? 'wip' : 'finished'
+  def next_board_name(b = nil)
+    (b || @board) == backlog_address ? 'wip' : 'finished'
   end
 
   def valid?
