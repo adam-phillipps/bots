@@ -269,7 +269,7 @@ module Administrator
       if e.kind_of? Aws::Kinesis::Errors::ResourceInUseException
         logger.info "Stream already created"
       else
-        errors[:ruby] << [e.message, e.backtrace].join("\n")
+        errors[:ruby] << format_error_message(e)
       end
     end
   end

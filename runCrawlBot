@@ -1,6 +1,11 @@
 #!/bin/sh
 #!/usr/bin/env ruby
 
-/home/ubuntu/.rbenv/shims/ruby crawl_bot.rb &>../crawlBot.log
-logger "Completed Script"
+cd /home/ubuntu/crawler
+git reset --hard HEAD
+git checkout master
+git reset --hard origin/master
+git pull --rebase
+exec bundle install
+exec `/home/ubuntu/.rbenv/shims/ruby` crawl_bot.rb
 exit 0
