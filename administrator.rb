@@ -326,4 +326,12 @@ module Administrator
       extraInfo:        opts[:extraInfo] || {}
     }.merge(opts).to_json
   end
+
+  def format_error_message(error)
+    begin
+      [error.message, error.backtrace.join("\n")].join("\n")
+    rescue Exception => e
+      error
+    end
+  end
 end

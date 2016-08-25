@@ -11,7 +11,7 @@ class CrawlBot
       @run_time = rand(14400) + 7200 # random seconds from 2 to 6 hours
       @start_time = boot_time
 
-      @status_thread = Thread.new { send_frequent_status_updates() }
+      # @status_thread = Thread.new { send_frequent_status_updates() }
       poll
     rescue Exception => e
       logger.error("Rescued in initialize method:\n" +
@@ -31,8 +31,6 @@ class CrawlBot
           visibility_timeout: 10
         ) do |msg, stats|
           begin
-            delete_existing_jobs
-
             job = Job.new(msg, self_id)
             catch :failed_job do
               catch :workflow_completed do
@@ -41,9 +39,17 @@ class CrawlBot
               wait_for_search(job)
             end
           rescue JSON::ParserError => e
-            error_message = e.message + "\n" + e.backtrace.join("\n")
-            errors[:workflow] << error_message
-            logger.error("Trouble with #{msg.body}:\n#{error_message}")
+            message = format_error_message(e)
+            errors[:workflow] << message
+            send_status_to_stream(
+              self_id, update_message_body(
+                type: 'SitRep',
+                content: 'job-failed',
+                extraInfo: message
+              )
+            )
+            throw :die if errors[:workflow].count > 5
+            logger.error("Failed job:\n#{message}")
           end
           logger.info("Polling....\n")
         end
@@ -59,14 +65,6 @@ class CrawlBot
       Sleeping for #{wait_time} seconds...")
 
     sleep(wait_time) # take this out when the logic moves to the java
-  end
-
-  def delete_existing_jobs
-    existing_json_files = Dir.glob('*.json').each do |file|
-      logger.info("deleting #{file}...")
-      File.delete(file)
-    end
-    logger.info("deleted:\n#{existing_json_files}")
   end
 
   def process_job(job)

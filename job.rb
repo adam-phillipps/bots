@@ -6,6 +6,12 @@ class Job
   attr_reader :board, :instance_id, :message
 
   def initialize(msg, instance_id)
+    send_status_to_stream(self_id,
+      {
+        type:         'SitRep',
+        content:      'job-started'
+      }.to_json
+    )
     @instance_id = instance_id
     @message = msg
     @board = backlog_address
@@ -73,15 +79,7 @@ class Job
   end
 
   def valid?
-    begin
-      @params.has_key?('category')
-    rescue Exception => e
-      error_message = "workflow error:\n#{e.message}\n" + e.backtrace.join('\n')
-      errors[:workflow] << e.backtrace.join("\n")
-      logger.error("invalid job!:\n#{self}\n#{error_message}")
-      throw :die if errors[:workflow].count > 3
-      false
-    end
+    @valid ||= @params.has_key?('message')
   end
 
   def message_body
