@@ -7,6 +7,6 @@ echo 'wtf'
 echo 'wtf'
 echo 'wtf'
 echo 'wtf'
-source /home/ubuntu/crawler/.crawl_bot.env
+. /home/ubuntu/crawler/.crawl_bot.env
 exec /home/ubuntu/.rbenv/shims/ruby crawl_bot.rb
 exit 0
