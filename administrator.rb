@@ -1,3 +1,5 @@
+require 'dotenv'
+Dotenv.load(".crawl_bot.env")
 require 'aws-sdk'
 Aws.use_bundled_cert!
 require 'httparty'
@@ -8,15 +10,15 @@ require 'byebug'
 
 module Administrator
   def boot_time
-    # Time.now.to_i # comment the code below for development mode
-    @instance_boot_time ||=
-      ec2.describe_instances(instance_ids:[self_id]).
-        reservations[0].instances[0].launch_time.to_i
+    Time.now.to_i # comment the code below for development mode
+    # @instance_boot_time ||=
+      # ec2.describe_instances(instance_ids:[self_id]).
+        # reservations[0].instances[0].launch_time.to_i
   end
 
   def self_id
-    # 'test-id' # comment the below line for development mode
-    @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id').parsed_response
+    'test-id' # comment the below line for development mode
+    # @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id').parsed_response
   end
 
   def poller(board)
@@ -285,23 +287,11 @@ module Administrator
     )
   end
 
-  def for_each_id_send_message_to(board, ids, message)
-    ids.each do |id|
-      sqs.send_message(
-        queue_url: board,
-        message_body: { "#{id}": "#{message}" }.to_json
-      )
-      # TODO:
-      # resend unsuccessful messages
-    end
-    true
-  end
-
   def send_frequent_status_updates(sleep_time = 5)
     while true
-      # status = 'Testing' # comment the lines below for development mode
-      status = ec2.describe_instances(instance_ids: [self_id]).
-        reservations[0].instances[0].state.name
+      status = 'Testing' # comment the lines below for development mode
+      # status = ec2.describe_instances(instance_ids: [self_id]).
+        # reservations[0].instances[0].state.name
       logger.info "Send update to status board #{update_message_body}"
 
       send_status_to_stream(
