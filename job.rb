@@ -79,7 +79,7 @@ class Job
   end
 
   def valid?
-    @valid ||= @params.has_key?('message')
+    @valid ||= @params.kind_of? Hash
   end
 
   def message_body
