@@ -7,5 +7,5 @@ git checkout master
 git reset --hard origin/master
 git pull --rebase
 exec bundle install
-exec `/home/ubuntu/.rbenv/shims/ruby` crawl_bot.rb
+exec `/home/ubuntu/.rbenv/shims/ruby` crawl_bot.rb &> /home/ubuntu/crawlBot.log
 exit 0

@@ -10,13 +10,18 @@ class TestData
 
   def add(number, board = backlog_address)
     number.times do |n|
-      puts n
+      message = {
+      instanceId:       'testing',
+      type:             'status_update',
+      content:          'testingInfo',
+      extraInfo:        { message: 'testing message' }
+    }.to_json
+
       sqs.send_message(
         queue_url: board,
-        message_body: {
-          'category': ['traffic','visit','aliens'].sample
-        }.to_json
+        message_body: message
       )
+      puts n
     end
   end
 
