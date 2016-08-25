@@ -1,5 +1,5 @@
-# require 'dotenv'
-# Dotenv.load(".crawl_bot.env")
+require 'dotenv'
+Dotenv.load(".crawl_bot.env")
 require 'aws-sdk'
 # Aws.use_bundled_cert!
 require 'httparty'
@@ -341,5 +341,11 @@ module Administrator
       # resend unsuccessful messages
     end
     true
+  end
+
+  def creds
+    @creds ||= Aws::Credentials.new(
+      ENV['AWS_ACCESS_KEY_ID'],
+      ENV['AWS_SECRET_ACCESS_KEY'])
   end
 end
