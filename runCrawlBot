@@ -1,8 +1,6 @@
 #!/bin/sh
 #!/usr/bin/env ruby
 cd /home/ubuntu/crawler
-source /home/ubuntu/crawler/.crawl_bot.env
-printf "${USER}"
-printf "$ENV"
+bundle install
 exec /home/ubuntu/.rbenv/shims/ruby crawl_bot.rb
 exit 0
