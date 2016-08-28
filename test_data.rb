@@ -1,21 +1,32 @@
 require 'dotenv'
-Dotenv.load('.crawl_bot.env')
-require_relative 'administrator'
+Dotenv.load('.neuron.env')
+require_relative './lib/cloud_powers/synapse/queue'
+require_relative './lib/cloud_powers/synapse/pipe'
+require_relative './lib/cloud_powers/helper'
+require_relative './lib/cloud_powers/auth'
+require_relative './lib/cloud_powers/aws_resources'
+require_relative './lib/cloud_powers/self_awareness'
+
 require 'byebug'
 require 'json'
 
 
 class TestData
-  include Administrator
+  include Smash::CloudPowers::Auth
+  include Smash::CloudPowers::AwsResources
+  include Smash::CloudPowers::Helper
+  include Smash::CloudPowers::SelfAwareness
+  include Smash::CloudPowers::Synapse
 
-  def add(number, board = backlog_address)
+
+  def add(number, board = ENV['BACKLOG_QUEUE_ADDRESS'])
     number.times do |n|
       message = {
-      instanceId:       'testing',
-      type:             'status_update',
-      content:          'testingInfo',
-      extraInfo:        { message: 'testing message' }
-    }.to_json
+        instanceId:       'testing',
+        type:             'status_update',
+        content:          'testingInfo',
+        extraInfo:        { message: 'testing message' }.to_json
+      }.to_json
 
       sqs.send_message(
         queue_url: board,
@@ -59,6 +70,6 @@ class TestData
 end
 
 
-# TestData.new.add(50)
+TestData.new.add(50)
 # TestData.new.delete('wip')
-TestData.new.terminate_instances
+# TestData.new.terminate_instances

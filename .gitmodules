@@ -1,0 +1,3 @@
+[submodule "lib/cloud_powers"]
+	path = lib/cloud_powers
+	url = git@github.com:adam-phillipps/cloud_powers.git
