@@ -1,5 +1,6 @@
 require 'dotenv'
 Dotenv.load('.neuron.env')
+require_relative 'default_task'
 require_relative './lib/cloud_powers/aws_resources'
 require_relative './lib/cloud_powers/auth'
 require_relative './lib/cloud_powers/delegator'
@@ -9,7 +10,9 @@ require_relative './lib/cloud_powers/synapse/pipe'
 require_relative './lib/cloud_powers/synapse/queue'
 
 module Smash
+
   class Neuron
+    include Smash::Delegator
     include CloudPowers::Auth
     include CloudPowers::AwsResources
     include CloudPowers::Helper
@@ -20,10 +23,10 @@ module Smash
 
     def initialize
       # begin
-        byebug
-        Smash::CloudPowers::SmashError
+        # Smash::CloudPowers::SmashError.build(:ruby, :workflow, :task)
         get_awareness!
         # @status_thread = Thread.new { send_frequent_status_updates(15) }
+        byebug
         think
     #   rescue Exception => e
     #     error_message = format_error_message(e)
@@ -49,11 +52,11 @@ module Smash
 
     def think
       catch :die do
-        byebug
         until should_stop?
+byebug
           poll(:backlog) do |msg, stats|
             begin
-              job = Delegator.build_job(@instance_id, msg)
+              job = build_job(@instance_id, msg)
               catch :failed_job do
                 catch :workflow_completed do
                   job.valid? ? process_job(job) : process_invalid_job(job)
@@ -68,7 +71,7 @@ module Smash
           end
         end
       end
-      die!
+      # die!
     end
 
     def process_invalid_job(job)
@@ -80,6 +83,7 @@ module Smash
     end
 
     def process_job(job)
+      byebug
       logger.info("Job found:\n#{job.message_body}")
       job.update_status
       job.run
@@ -92,10 +96,6 @@ module Smash
 
     def time_is_up?
       (run_time % 60) < 5
-    end
-
-    def death_ratio_acheived?
-      !!(current_ratio >= death_threashold)
     end
 
     def current_ratio

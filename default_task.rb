@@ -1,8 +1,10 @@
+require_relative 'job'
+
 module Smash
   class DefaultTask < Job
-    def initialize(id, opts = {})
-      super(id, opts)
-      @board = backlog_address
+    def initialize(id, msg)
+      byebug
+      super(id, msg)
       @params = JSON.parse(msg.body)
     end
 

@@ -11,10 +11,6 @@ module Smash
       @instance_id = id
       @message = msg
       @board = build_board(:backlog)
-      # must have methods:
-      # :update_status
-      # sub-classes are exoected to have:
-      # :run, :valid?, :finished_job
     end
 
     def update_status

@@ -70,6 +70,6 @@ class TestData
 end
 
 
-TestData.new.add(50)
+TestData.new.add(10)
 # TestData.new.delete('wip')
 # TestData.new.terminate_instances
