@@ -3,16 +3,28 @@ require_relative 'job'
 module Smash
   class DefaultTask < Job
     def initialize(id, msg)
-      byebug
+      @start_time = Time.now.to_i
       super(id, msg)
       @params = JSON.parse(msg.body)
     end
 
     def run
+      logger.info(sitrep_message(message_body))
+      pipe_to(:status_stream) { sitrep_message(message_body) }
       # job specific run instructions
-      logger.info("job running...\n#{run_params}")
-      sleep(10)
-      logger.info("finished job!\n#{finished_job}")
+
+      # testing begins
+      @mock_updates_thread =
+        send_frequent_status_updates(
+          interval: 10,
+          content: sitrep_message(task_run_time)
+        )
+      sleep rand(60)
+      Thread.kill(@mock_updates_thread)
+      # testing over
+
+      logger.info(sitrep_message(finished_job))
+      pipe_to(:status_stream) { sitrep_message(finished_job) }
     end
 
 

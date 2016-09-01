@@ -4,6 +4,7 @@ require_relative 'default_task'
 require_relative './lib/cloud_powers/aws_resources'
 require_relative './lib/cloud_powers/auth'
 require_relative './lib/cloud_powers/delegator'
+require_relative './lib/cloud_powers/helper'
 require_relative './lib/cloud_powers/self_awareness'
 require_relative './lib/cloud_powers/smash_error'
 require_relative './lib/cloud_powers/synapse/pipe'
@@ -12,12 +13,12 @@ require_relative './lib/cloud_powers/synapse/queue'
 module Smash
 
   class Neuron
+    include Smash::CloudPowers::Auth
+    include Smash::CloudPowers::AwsResources
+    include Smash::CloudPowers::Helper
+    include Smash::CloudPowers::SelfAwareness
+    include Smash::CloudPowers::Synapse
     include Smash::Delegator
-    include CloudPowers::Auth
-    include CloudPowers::AwsResources
-    include CloudPowers::Helper
-    include CloudPowers::SelfAwareness
-    include CloudPowers::Synapse
 
     attr_accessor :instance_id, :job_status, :workflow_status
 
@@ -25,8 +26,7 @@ module Smash
       # begin
         # Smash::CloudPowers::SmashError.build(:ruby, :workflow, :task)
         get_awareness!
-        # @status_thread = Thread.new { send_frequent_status_updates(15) }
-        byebug
+        # @status_thread = Thread.new { send_frequent_status_updates(interval: 5) }
         think
     #   rescue Exception => e
     #     error_message = format_error_message(e)
@@ -53,19 +53,30 @@ module Smash
     def think
       catch :die do
         until should_stop?
-byebug
           poll(:backlog) do |msg, stats|
             begin
-              job = build_job(@instance_id, msg)
               catch :failed_job do
+                byebug
+                job = build_job(@instance_id, msg)
                 catch :workflow_completed do
+                  byebug
                   job.valid? ? process_job(job) : process_invalid_job(job)
                 end
+                byebug
+                message =
+                  update_message_body(
+                    type: 'SitRep',
+                    content: 'workflow-completed',
+                    extraInfo: { message: 'Task completed.  Moving along...' }
+                  )
+                logger.info message
+                pipe_to(:status_stream) { message }
               end
+              byebug
             rescue JSON::ParserError => e
               error_message = format_error_message(e)
               logger.error error_message
-              errors.push_error!(:workflow, error_message)
+              # errors.push_error!(:workflow, error_message)
               pipe_to(:status_stream) { error_message }
             end
           end
@@ -75,27 +86,31 @@ byebug
     end
 
     def process_invalid_job(job)
-      logger.info("invalid job:\n#{format_finished_body(job.message_body)}")
+      logger.info("invalid job:\n#{format_finished_body(job.message.body)}")
       sqs.delete_message(
         queue_url: backlog_address,
         receipt_handle: job.receipt_handle
       )
+      # TODO: make sure this is sending a message to needs_attention too
     end
 
     def process_job(job)
-      byebug
-      logger.info("Job found:\n#{job.message_body}")
+      logger.info("Job found:\n#{job.message.body}")
       job.update_status
+      byebug
       job.run
       job.update_status(job.finished_job)
     end
 
     def should_stop?
+      puts 'here'
+      puts time_is_up?
       !!(time_is_up? ? death_ratio_acheived? : false)
     end
 
     def time_is_up?
-      (run_time % 60) < 5
+      # (run_time % 3600) < 5
+      false
     end
 
     def current_ratio
