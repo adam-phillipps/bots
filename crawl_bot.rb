@@ -10,14 +10,14 @@ class CrawlBot
   attr_accessor :identity, :instance_id
 
   def initialize
-    # begin
+    begin
       @status_thread = Thread.new { send_frequent_status_updates }
       poll
-    # rescue Exception => e
-    #   logger.error("Rescued in initialize method:\n" +
-    #     "#{[e.message, e.backtrace.join("\n")].join("\n")}")
-    #   die!
-    # end
+    rescue Exception => e
+      logger.error("Rescued in initialize method:\n" +
+        "#{[e.message, e.backtrace.join("\n")].join("\n")}")
+      die!
+    end
   end
 
   def poll

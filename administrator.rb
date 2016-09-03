@@ -11,20 +11,20 @@ require 'byebug'
 
 module Administrator
   def boot_time
-    @boot_time ||= Time.now.to_i # comment the code below for development mode
-    # @instance_boot_time ||=
-      # ec2.describe_instances(instance_ids:[self_id]).
-        # reservations[0].instances[0].launch_time.to_i
+    # @boot_time ||= Time.now.to_i # comment the code below for development mode
+    @instance_boot_time ||=
+      ec2.describe_instances(instance_ids:[self_id]).
+        reservations[0].instances[0].launch_time.to_i
   end
 
   def self_id
-    @self_id ||= 'test-id' # comment the below line for development mode
-    # @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id').parsed_response
+    # @self_id ||= 'test-id' # comment the below line for development mode
+    @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id').parsed_response
   end
 
   def url
-    @url ||= 'https://test-url.com'
-    # @url ||= HTTParty.get('http://169.254.169.254/latest/meta-data/hostname').parsed_response
+    # @url ||= 'https://test-url.com'
+    @url ||= HTTParty.get('http://169.254.169.254/latest/meta-data/hostname').parsed_response
   end
 
   def identity
@@ -232,11 +232,10 @@ module Administrator
           resp = kinesis.put_record(
             stream_name: status_stream_name,
             data: message,
-            partition_key: ids.first
+            partition_key: ids.first.to_s
           )
 
           unless resp[:sequence_number] && resp[:shard_id]
-            byebug
             send_status_to_stream(ids, message)
           end
 
@@ -244,7 +243,7 @@ module Administrator
         elsif ids.count > 1
           resp = kinesis.put_records(
             stream_name: status_stream_name,
-            records: ids.map { |id| { data: resp, partition_key: id } }
+            records: ids.map { |id| { data: message, partition_key: id.to_s } }
           )
 
           if resp.failed_record_count > 0
@@ -303,9 +302,9 @@ module Administrator
   def send_frequent_status_updates(opts = {})
     sleep_time = opts.delete(:interval) || 5
     while true
-      status = 'Testing' # comment the lines below for development mode
-      # status = ec2.describe_instances(instance_ids: [self_id]).
-        # reservations[0].instances[0].state.name
+      # status = 'Testing' # comment the lines below for development mode
+      status = ec2.describe_instances(instance_ids: [self_id]).
+        reservations[0].instances[0].state.name
       updated = update_message_body(opts)
       logger.info "Status update: #{updated}"
 
