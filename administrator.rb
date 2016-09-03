@@ -142,7 +142,7 @@ module Administrator
   end
 
   def log_file
-    @log_file ||= ENV['LOG_FILE']
+    @log_file ||= "../#{ENV['LOG_FILE']}"
   end
 
   def logger
