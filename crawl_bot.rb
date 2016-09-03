@@ -21,6 +21,7 @@ class CrawlBot
   end
 
   def poll
+    logger.info 'Beginning to poll...'
     catch :die do
       until should_stop? do
         sleep rand(polling_sleep_time)
@@ -31,6 +32,7 @@ class CrawlBot
           visibility_timeout: 10
         ) do |msg, stats|
           begin
+            logger.info "Found: #{msg.body}"
             @identity = JSON.parse(msg.body)['identity']
             job = Job.new(msg, self_id, @identity)
             catch :failed_job do
