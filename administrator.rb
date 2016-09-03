@@ -1,5 +1,6 @@
 require 'dotenv'
-Dotenv.load("/home/ubuntu/crawler/.crawl_bot.env")
+# Dotenv.load("/home/ubuntu/crawler/.crawl_bot.env")
+Dotenv.load(".crawl_bot.env")
 require 'aws-sdk'
 Aws.use_bundled_cert!
 require 'httparty'
@@ -10,15 +11,24 @@ require 'byebug'
 
 module Administrator
   def boot_time
-    # Time.now.to_i # comment the code below for development mode
-    @instance_boot_time ||=
-      ec2.describe_instances(instance_ids:[self_id]).
-        reservations[0].instances[0].launch_time.to_i
+    @boot_time ||= Time.now.to_i # comment the code below for development mode
+    # @instance_boot_time ||=
+      # ec2.describe_instances(instance_ids:[self_id]).
+        # reservations[0].instances[0].launch_time.to_i
   end
 
   def self_id
-    # 'test-id' # comment the below line for development mode
-    @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id').parsed_response
+    @self_id ||= 'test-id' # comment the below line for development mode
+    # @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id').parsed_response
+  end
+
+  def url
+    @url ||= 'https://test-url.com'
+    # @url ||= HTTParty.get('http://169.254.169.254/latest/meta-data/hostname').parsed_response
+  end
+
+  def identity
+    @identity
   end
 
   def poller(board)
@@ -106,7 +116,7 @@ module Administrator
   end
 
   def jobs_ratio_denominator
-    @jobs_ratio_denominator ||= ENV['RATIO_DENOMINATOR'].to_i
+    @jobs_ratio_denominator ||= 1 # ENV['RATIO_DENOMINATOR'].to_i
   end
 
   def get_count(board)
@@ -115,12 +125,13 @@ module Administrator
       attribute_names: ['ApproximateNumberOfMessages']
     ).attributes['ApproximateNumberOfMessages'].to_f
 
-    message = {
+    message = update_message_body(
      instanceID: self_id,
-     type: 'SitRep',
-     content: 'Count',
-     extraInfo: { board => count }
-    }.to_json
+     url:          url,
+     type:        'SitRep',
+     content:     'board-count',
+     extraInfo:   { board => count }
+    )
 
     update_status_checks(self_id, message)
     count
@@ -182,12 +193,12 @@ module Administrator
 
   def notification_of_death
     blame = errors.sort_by(&:reverse).last.first
-    message = {
-     instanceID: self_id,
-     type: 'status_update',
-     content: 'Dying',
-     extraInfo: blame
-    }.to_json
+    message = update_message_body(
+      url:          url,
+      type:         'status-update',
+      content:      'dying',
+      extraInfo:    { cause: blame, stack_trace: errors[blame] }
+    )
 
     update_status_checks(self_id, message)
     sqs.send_message(
@@ -198,6 +209,7 @@ module Administrator
       queue_url: needs_attention_address,
       message_body: message
     )
+    send_status_to_stream(self_id, message)
     logger.info("The cause for the shutdown is #{blame}")
   end
 
@@ -210,7 +222,7 @@ module Administrator
     )
   end
 
-  def send_status_to_stream(ids, status)
+  def send_status_to_stream(ids, message)
     ids = ids.kind_of?(Array) ? ids : [ids.to_s]
     it_worked = false
 
@@ -219,19 +231,20 @@ module Administrator
         if ids.count == 1
           resp = kinesis.put_record(
             stream_name: status_stream_name,
-            data: status,
+            data: message,
             partition_key: ids.first
           )
 
           unless resp[:sequence_number] && resp[:shard_id]
-            send_status_to_stream(ids, status)
+            byebug
+            send_status_to_stream(ids, message)
           end
 
           it_worked = true
         elsif ids.count > 1
           resp = kinesis.put_records(
             stream_name: status_stream_name,
-            records: ids.map { |id| { data: status, partition_key: id } }
+            records: ids.map { |id| { data: resp, partition_key: id } }
           )
 
           if resp.failed_record_count > 0
@@ -287,20 +300,17 @@ module Administrator
     )
   end
 
-  def send_frequent_status_updates(sleep_time = 5)
+  def send_frequent_status_updates(opts = {})
+    sleep_time = opts.delete(:interval) || 5
     while true
-      # status = 'Testing' # comment the lines below for development mode
-      status = ec2.describe_instances(instance_ids: [self_id]).
-        reservations[0].instances[0].state.name
-      logger.info "Send update to status board #{update_message_body}"
+      status = 'Testing' # comment the lines below for development mode
+      # status = ec2.describe_instances(instance_ids: [self_id]).
+        # reservations[0].instances[0].state.name
+      updated = update_message_body(opts)
+      logger.info "Status update: #{updated}"
 
-      send_status_to_stream(
-        self_id, update_message_body(
-          type: 'status-update',
-          content: status
-        )
-      )
-      update_status_checks(self_id, update_message_body)
+      send_status_to_stream(self_id, updated)
+      update_status_checks(self_id, updated)
       sleep sleep_time
     end
   end
@@ -314,12 +324,15 @@ module Administrator
   end
 
   def update_message_body(opts = {})
-    {
-      instanceId:       opts[:instanceId] || self_id,
-      type:             opts[:type] || 'status_update',
-      content:          opts[:content] || 'running',
-      extraInfo:        opts[:extraInfo] || {}
-    }.merge(opts).to_json
+    msg = {
+      instanceId:       self_id,
+      identity:         identity || 'none-aquired',
+      url:              url,
+      type:             'status-update',
+      content:          'running',
+      extraInfo:        {}
+    }.merge(opts)
+    msg.to_json
   end
 
   def format_error_message(error)

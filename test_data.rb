@@ -12,7 +12,7 @@ class TestData
     number.times do |n|
       message = {
       instanceId:       'testing',
-      type:             'status_update',
+      type:             'status-update',
       content:          'testingInfo',
       extraInfo:        { message: 'testing message' }
     }.to_json

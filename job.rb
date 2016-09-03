@@ -3,16 +3,19 @@ require_relative 'administrator'
 
 class Job
   include Administrator
-  attr_reader :board, :instance_id, :message
+  attr_reader :board, :identity, :instance_id, :message, :params
 
-  def initialize(msg, instance_id)
-    send_status_to_stream(self_id,
-      {
+  def initialize(msg, instance_id, identity)
+    send_status_to_stream(
+      self_id, update_message_body(
+        url:          url,
         type:         'SitRep',
         content:      'job-started'
-      }.to_json
+      )
     )
+    @identity = identity
     @instance_id = instance_id
+
     @message = msg
     @board = backlog_address
     @params = JSON.parse(msg.body)
@@ -21,9 +24,10 @@ class Job
   def finished_job
     begin
       update_message_body(
-        type: 'SitRep',
-        content: 'job-finished',
-        extraInfo: @params
+        url:          url,
+        type:       'SitRep',
+        content:    'job-finished',
+        extraInfo:  @params
       )
     rescue Exception => e
       logger.error format_error_message(e)
@@ -35,36 +39,54 @@ class Job
   end
 
   def run
-    logger.info("job running...\n#{run_params}")
-    logger.info("waiting for job to finish...")
-    sleep(10)
-    logger.info("finished job!\n#{finished_job}")
+    logger.info("job running...#{run_params}")
+    send_status_to_stream(
+      self_id, update_message_body(
+        url:          url,
+        type:         'SitRep',
+        content:      'job-started',
+        extraInfo:    run_params
+      )
+    )
+    @job_running_thread = Thread.new do
+      send_frequent_status_updates(interval: 10, type: 'SitRep')
+    end
+    sleep(30)
+    Thread.kill(@job_running_thread) unless @job_running_thread.nil?
+
+    logger.info("finished job! #{finished_job}")
+    send_status_to_stream(
+      self_id, update_message_body(
+        url:          url,
+        type:         'SitRep',
+        content:      'job-finished',
+        extraInfo:    run_params
+      )
+    )
   end
 
   def update_status(finished_message = nil)
     begin
-      logger.info("progressing through status...\n" +
-        "\tcurrent_board is #{@board}")
 
       from = @board
       to = next_board
 
       sqs.delete_message(queue_url: from, receipt_handle: receipt_handle)
 
-      status = to == finished_address ? 'job-finished' : 'job-running'
-      message = to == finished_address ? finished_message : message_body
+      status = to == finished_address ? 'job-finished' : 'job-starting'
+      message = to == finished_address ? finished_job : message_body
 
       send_status_to_stream(
         self_id, update_message_body(
-          type: 'SitRep',
-          content: status,
-          extraInfo: message
+          url:          url,
+          type:         'SitRep',
+          content:      status,
+          extraInfo:    message
         )
       )
 
       sqs.send_message(queue_url: to, message_body: message)
       unless finished_message.nil?
-        logger.info(format_finished_body(message))
         throw :workflow_completed
       end
 
@@ -78,7 +100,6 @@ class Job
         throw :stop_polling
       end
 
-      logger.info("updated..\n\tcurrent board is #{@board}...")
     rescue Exception => e
       error_message = "workflow error:\n#{e.message}\n" + e.backtrace.join('\n')
       errors[:workflow] << error_message
