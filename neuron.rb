@@ -67,7 +67,7 @@ module Smash
                   update_message_body(
                     type: 'SitRep',
                     content: 'workflow-completed',
-                    extraInfo: { message: 'Task completed.  Moving along...' }
+                    extraInfo: { message: "Completed: #{job.params}  Moving along..." }
                   )
                 logger.info message
                 pipe_to(:status_stream) { message }
@@ -95,9 +95,15 @@ module Smash
     end
 
     def process_job(job)
-      logger.info("Job found:\n#{job.message.body}")
+      logger.info("Job found: #{job.message_body}")
+      pipe_to(:status_stream) do
+        sitrep_message(
+          content:      'workflow-started',
+          extraInfo:    job.params
+        )
+      end
+
       job.update_status
-      byebug
       job.run
       job.update_status(job.finished_job)
     end
@@ -109,8 +115,12 @@ module Smash
     end
 
     def time_is_up?
-      # (run_time % 3600) < 5
-      false
+      # returns true when the hour mark approaches
+      an_hours_time = 60 * 60
+      five_minutes_time = 60 * 5
+
+      return false if run_time < five_minutes_time
+      run_time % an_hours_time < five_minutes_time
     end
 
     def current_ratio

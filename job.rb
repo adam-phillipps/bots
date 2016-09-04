@@ -11,7 +11,7 @@ module Smash
     include Smash::CloudPowers::Synapse::Pipe
     include Smash::CloudPowers::Synapse::Queue
 
-    attr_reader :instance_id, :message
+    attr_reader :instance_id, :message, :message_body
 
     def initialize(id, msg)
       @instance_id = id
@@ -38,10 +38,16 @@ module Smash
       end
     end
 
-    def sitrep_message(message)
+    def sitrep_message(opts = {})
+      # TODO: find better implementation of merging nested hashes
         situation = @board.name == 'finished' ? 'workflow-completed' : 'workflow-in-progress'
-        report = message
-        sitrep_alterations = { type: 'SitRep', content: situation, extraInfo: report }
+        sitrep_alterations = {
+          type: 'SitRep',
+          content: situation,
+          extraInfo: {
+            'task-run-time' => task_run_time
+          }.merge(opts[:extraInfo]) unless opts[:extraInfo].nil?
+        }
         update_message_body(sitrep_alterations)
     end
 
