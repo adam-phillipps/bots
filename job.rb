@@ -11,20 +11,22 @@ module Smash
     include Smash::CloudPowers::Synapse::Pipe
     include Smash::CloudPowers::Synapse::Queue
 
-    attr_reader :instance_id, :message, :message_body
+    attr_reader :instance_id, :message, :message_body, :board
 
     def initialize(id, msg)
       @instance_id = id
       @message = msg
-      @board = build_board(:backlog)
       @message_body = msg.body
+      @board = build_board(:backlog)
     end
 
     def update_status
       begin
-        message = "Progressed through states...\n\t#{@board.name} -> #{@board.next_board}"
+        message = "Next state...#{@board.name} -> #{@board.next_board}"
         logger.info message
-        update = sitrep_message(message)
+        # TODO: fugure out how to make this more better.  this way creates another
+        # contract you have to follow for the Task class (which could be ok)
+        update = custom_sitrep(message)
 
         delete_queue_message(@board.name)
         @board = build_board(@board.next_board)
@@ -40,14 +42,23 @@ module Smash
 
     def sitrep_message(opts = {})
       # TODO: find better implementation of merging nested hashes
-        situation = @board.name == 'finished' ? 'workflow-completed' : 'workflow-in-progress'
+      # this should be fixed with ::Helper#update_message_body
+        situation =
+          @board.name == 'finished' ? 'workflow-completed' : 'workflow-in-progress'
+
+        extra_info = {}
+        if opts.kind_of?(Hash) && opts[:extraInfo]
+          custom_info = opts.delete(:extraInfo)
+          extra_info = { 'task-run-time' => task_run_time }.merge(custom_info)
+        else
+          opts = {}
+        end
+
         sitrep_alterations = {
           type: 'SitRep',
           content: situation,
-          extraInfo: {
-            'task-run-time' => task_run_time
-          }.merge(opts[:extraInfo]) unless opts[:extraInfo].nil?
-        }
+          extraInfo: extra_info
+        }.merge(opts)
         update_message_body(sitrep_alterations)
     end
 

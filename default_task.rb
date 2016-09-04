@@ -15,9 +15,19 @@ module Smash
       super(id, msg)
     end
 
+    def custom_sitrep(opts = {})
+      # TODO: move this method to a demo specific class ASAP
+      unless opts.kind_of? Hash
+        m = opts.to_s
+        opts = { extraInfo: { message: m } }
+      end
+      custom_info = { identity: identity, url: instance_url }.merge(opts)
+      sitrep_message(custom_info)
+    end
+
     def finished_task
       # TODO: move identity to a demo specific class ASAP
-      sitrep_message(identity: identity, extraInfo: { task: @params })
+      custom_sitrep(extraInfo: { task: @params })
     end
 
     def identity
@@ -32,30 +42,29 @@ module Smash
     end
 
     def run
-      byebug
       # TODO: remove identity after demo
-      message = sitrep_message(
-        extraInfo: @params,
-        identity: identity,
-        url: instance_url
-      )
-      logger.info message
-      pipe_to(:status_stream) { message }
+      message = lambda { custom_sitrep(extraInfo: @params) }
+      logger.info "Task starting... #{message.call}"
+      pipe_to(:status_stream) { message.call }
       # job specific run instructions
 
       # TODO: move this method to a demo specific class ASAP
-      # testing begins
-      @mock_updates_thread =
-        send_frequent_status_updates(
-          interval: 5,
-          content: sitrep_message(extraInfo: { 'task-run-time' => task_run_time })
-        )
+      @task_status_thread = Thread.new do
+        # testing begins
+        # @updates_thread = Thread.new do
+        #   error, results, status = Open3.capture3(
+        #     "java -jar #{scraper} " +
+        #     "#{run_params[:product_id]} " +
+        #     "#{run_params[:title]} " +
+        #     "#{run_params[:user_agent]}\">&2"
+        #   )
+        # end
+        logger.info "Task running... #{message.call}"
+        send_frequent_status_updates(message.call.merge(interval: 5))
+      end
       sleep rand(30..60)
-      Thread.kill(@mock_updates_thread)
       # testing over
-
-      logger.info(sitrep_message(finished_task))
-      pipe_to(:status_stream) { finished_task }
+      Thread.kill(@task_status_thread)
     end
 
     def valid?

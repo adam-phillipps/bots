@@ -24,9 +24,12 @@ module Smash
 
     def initialize
       # begin
+        logger.info "Neuron waking up..."
         # Smash::CloudPowers::SmashError.build(:ruby, :workflow, :task)
         get_awareness!
-        # @status_thread = Thread.new { send_frequent_status_updates(interval: 5) }
+        @status_thread = Thread.new do
+          send_frequent_status_updates(interval: 5, identity: 'neuron')
+        end
         think
     #   rescue Exception => e
     #     error_message = format_error_message(e)
@@ -56,23 +59,17 @@ module Smash
           poll(:backlog) do |msg, stats|
             begin
               catch :failed_job do
-                byebug
                 job = build_job(@instance_id, msg)
-                catch :workflow_completed do
-                  byebug
-                  job.valid? ? process_job(job) : process_invalid_job(job)
-                end
-                byebug
+                job.valid? ? process_job(job) : process_invalid_job(job)
                 message =
                   update_message_body(
                     type: 'SitRep',
                     content: 'workflow-completed',
-                    extraInfo: { message: "Completed: #{job.params}  Moving along..." }
+                    extraInfo: { message: "Completed: #{job.params} Moving along..." }
                   )
                 logger.info message
                 pipe_to(:status_stream) { message }
               end
-              byebug
             rescue JSON::ParserError => e
               error_message = format_error_message(e)
               logger.error error_message
@@ -96,21 +93,17 @@ module Smash
 
     def process_job(job)
       logger.info("Job found: #{job.message_body}")
+
       pipe_to(:status_stream) do
-        sitrep_message(
-          content:      'workflow-started',
-          extraInfo:    job.params
-        )
+        job.custom_sitrep(content: 'workflow-started', extraInfo: job.params)
       end
 
       job.update_status
       job.run
-      job.update_status(job.finished_job)
+      job.update_status
     end
 
     def should_stop?
-      puts 'here'
-      puts time_is_up?
       !!(time_is_up? ? death_ratio_acheived? : false)
     end
 
