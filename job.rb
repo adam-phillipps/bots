@@ -51,7 +51,12 @@ class Job
     @job_running_thread = Thread.new do
       send_frequent_status_updates(interval: 10, type: 'SitRep')
     end
-    sleep(30)
+
+    system_comand =
+      "java -jar -DmodelIndex=\"#{identity}\" " +
+      '-DuseLocalFiles=false roas-simulator-1.0.jar'
+
+    error, result, status = Open3.capture3(system_comand)
     Thread.kill(@job_running_thread) unless @job_running_thread.nil?
 
     logger.info("finished job! #{finished_job}")
@@ -60,7 +65,7 @@ class Job
         url:          url,
         type:         'SitRep',
         content:      'job-finished',
-        extraInfo:    run_params
+        extraInfo:    run_params.merge({ error: error, result: result, status: status })
       )
     )
   end
