@@ -11,7 +11,7 @@ class TestData
   def add(number, board = backlog_address)
     number.times do |n|
       message = {
-        identity: (1..100).to_a.sample.to_s,
+        identity: (0..10).to_a.sample.to_s,
         task_type: 'Demo'
       # instanceId:       'testing',
       # type:             'status-update',
@@ -23,7 +23,7 @@ class TestData
         queue_url: board,
         message_body: message
       )
-      puts n
+      puts "#{n}: #{message}"
     end
   end
 
@@ -61,6 +61,6 @@ class TestData
 end
 
 
-# TestData.new.add(50)
+TestData.new.add(10)
 # TestData.new.delete('backlog')
 # TestData.new.terminate_instances

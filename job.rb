@@ -47,7 +47,7 @@ class Job
             url:          url,
             type:         'SitRep',
             content:      'job_running',
-            extraInfo:    { job: run_params, run_time: run_time }
+            extraInfo:    { job: run_params, run_time: run_time.to_s }
           )
         end
     logger.info "Task starting... #{message.call}"
@@ -61,16 +61,36 @@ class Job
     end
 
     system_command =
-      "java -jar -DmodelIndex=#{identity} " +
+      'java -jar -DmodelIndex="' + "#{identity}" + '" ' +
       '-DuseLocalFiles=false roas-simulator-1.0.jar'
     error, results, status = Open3.capture3(system_command)
-    total_run_time = Time.now.to_i - @started_job_time
+    if error.size < 1
+      total_run_time = Time.now.to_i - @started_job_time
+      puts "total run time: #{total_run_time}"
 
-    Thread.kill(@task_thread) unless @task_thread.nil?
+      Thread.kill(@task_thread) unless @task_thread.nil?
 
-    logger.info("finished job! #{finished_job}")
-    send_status_to_stream(
-      self_id, update_message_body(
+      logger.info("finished job! #{finished_job}")
+      um = update_message_body(
+          url:          url,
+          type:         'SitRep',
+          content:      'job_finished',
+          extraInfo:    {
+            job: run_params,
+            run_time: total_run_time,
+            results: results,
+            errors: error,
+            status: status
+          }
+        )
+      send_status_to_stream(self_id, um)
+    else
+      total_run_time = Time.now.to_i - @started_job_time
+      puts "total run time: #{total_run_time}"
+
+      Thread.kill(@task_thread) unless @task_thread.nil?
+
+      error_m = update_message_body(
         url:          url,
         type:         'SitRep',
         content:      'job_finished',
@@ -82,7 +102,9 @@ class Job
           status: status
         }
       )
-    )
+      logger.error("Failed Job! #{error_m}")
+      send_status_to_stream(self_id, error_m)
+    end
   end
 
   def update_status(finished_message = nil)
