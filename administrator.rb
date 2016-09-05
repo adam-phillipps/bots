@@ -19,7 +19,7 @@ module Administrator
 
   def self_id
     # @self_id ||= 'test-id' # comment the below line for development mode
-    @id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id').parsed_response
+    @self_id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id').parsed_response
   end
 
   def url
@@ -129,7 +129,7 @@ module Administrator
      instanceID: self_id,
      url:          url,
      type:        'SitRep',
-     content:     'board-count',
+     content:     'board_count',
      extraInfo:   { board => count }
     )
 
@@ -195,7 +195,7 @@ module Administrator
     blame = errors.sort_by(&:reverse).last.first
     message = update_message_body(
       url:          url,
-      type:         'status-update',
+      type:         'status_update',
       content:      'dying',
       extraInfo:    { cause: blame, stack_trace: errors[blame] }
     )
@@ -327,7 +327,7 @@ module Administrator
       instanceId:       self_id,
       identity:         identity || 'none-aquired',
       url:              url,
-      type:             'status-update',
+      type:             'status_update',
       content:          'running',
       extraInfo:        {}
     }.merge(opts)

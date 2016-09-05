@@ -26,7 +26,7 @@ class Job
       update_message_body(
         url:          url,
         type:       'SitRep',
-        content:    'job-finished',
+        content:    'job_finished',
         extraInfo:  @params
       )
     rescue Exception => e
@@ -39,28 +39,48 @@ class Job
   end
 
   def run
-    logger.info("job running...#{run_params}")
-    send_status_to_stream(
-      self_id, update_message_body(
-        url:          url,
-        type:         'SitRep',
-        content:      'job-started',
-        extraInfo:    run_params
-      )
-    )
-    @job_running_thread = Thread.new do
-      send_frequent_status_updates(interval: 10, type: 'SitRep')
+    @started_job_time = Time.now.to_i
+      message =
+        lambda do
+          run_time = Time.now.to_i - @started_job_time
+          update_message_body(
+            url:          url,
+            type:         'SitRep',
+            content:      'job_running',
+            extraInfo:    { job: run_params, run_time: run_time }
+          )
+        end
+    logger.info "Task starting... #{message.call}"
+
+    @task_thread = Thread.new do
+      while true
+        logger.info "Task running... #{message.call}"
+        send_status_to_stream(self_id, message.call)
+        sleep 3
+      end
     end
-    sleep(30)
-    Thread.kill(@job_running_thread) unless @job_running_thread.nil?
+
+    system_command =
+      "java -jar -DmodelIndex=#{identity} " +
+      '-DuseLocalFiles=false roas-simulator-1.0.jar'
+    error, results, status = Open3.capture3(system_command)
+    total_run_time = Time.now.to_i - @started_job_time
+
+    Thread.kill(@task_thread) unless @task_thread.nil?
 
     logger.info("finished job! #{finished_job}")
     send_status_to_stream(
       self_id, update_message_body(
         url:          url,
         type:         'SitRep',
-        content:      'job-finished',
-        extraInfo:    run_params
+        content:      'job_finished',
+        extraInfo:    {
+          job: run_params,
+          run_time: total_run_time,
+          results: results,
+          errors: error,
+          status: status
+        }
       )
     )
   end
@@ -73,7 +93,7 @@ class Job
 
       sqs.delete_message(queue_url: from, receipt_handle: receipt_handle)
 
-      status = to == finished_address ? 'job-finished' : 'job-starting'
+      status = to == finished_address ? 'job_finished' : 'job_starting'
       message = to == finished_address ? finished_job : message_body
 
       send_status_to_stream(

@@ -10,6 +10,7 @@ class CrawlBot
   attr_accessor :identity, :instance_id
 
   def initialize
+
     begin
       @status_thread = Thread.new { send_frequent_status_updates }
       poll
@@ -41,7 +42,7 @@ class CrawlBot
               end
               send_status_to_stream(
                 self_id, update_message_body(
-                  content: 'workflow-completed',
+                  content: 'workflow_completed',
                   extraInfo: job.run_params
                 )
               )
@@ -52,7 +53,7 @@ class CrawlBot
             send_status_to_stream(
               self_id, update_message_body(
                 url:          url,
-                content:      'workflow-failed',
+                content:      'workflow_failed',
                 extraInfo:    { error: message, job: job.run_params }
               )
             )
@@ -68,10 +69,7 @@ class CrawlBot
 
   def wait_for_search(job)
     wait_time = 10
-    # logger.info("Finished job: #{job.run_params}\n \
-      # with:\n#{format_finished_body(job.finished_job)}\n \
-      # Sleeping for #{wait_time} seconds...")
-
+    logger.info("Finished job: #{job.run_params}")
     sleep(wait_time) # take this out when the logic moves to the java
   end
 
@@ -127,7 +125,7 @@ class CrawlBot
   end
 
   def death_threashold
-    @death_threashold ||= (1.0 / jobs_ratio_denominator.to_f)
+    @death_threashold ||= 1 # (1.0 / jobs_ratio_denominator.to_f)
   end
 
   def polling_sleep_time

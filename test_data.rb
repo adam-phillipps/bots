@@ -11,10 +11,12 @@ class TestData
   def add(number, board = backlog_address)
     number.times do |n|
       message = {
-      instanceId:       'testing',
-      type:             'status-update',
-      content:          'testingInfo',
-      extraInfo:        { message: 'testing message' }
+        identity: (1..100).to_a.sample.to_s,
+        task_type: 'Demo'
+      # instanceId:       'testing',
+      # type:             'status-update',
+      # content:          'testingInfo',
+      # extraInfo:        { message: 'testing message' }
     }.to_json
 
       sqs.send_message(
@@ -60,5 +62,5 @@ end
 
 
 # TestData.new.add(50)
-# TestData.new.delete('wip')
-TestData.new.terminate_instances
+# TestData.new.delete('backlog')
+# TestData.new.terminate_instances
