@@ -24,7 +24,7 @@ module Administrator
 
   def url
     # @url ||= 'https://test-url.com'
-    @url ||= HTTParty.get('http://169.254.169.254/latest/meta-data/hostname').parsed_response
+    @url ||= HTTParty.get('http://169.254.169.254/latest/meta-data/public-hostname').parsed_response
   end
 
   def identity

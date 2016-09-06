@@ -3,5 +3,5 @@
 set -x
 cd /home/ubuntu/crawler
 . /home/ubuntu/crawler/.crawl_bot.env
-exec /home/ubuntu/.rbenv/shims/ruby crawl_bot.rb
+exec /home/ubuntu/.rbenv/shims/ruby crawl_bot.rb &> /home/ubuntu/crawBot.log
 exit 0
