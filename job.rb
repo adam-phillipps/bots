@@ -59,9 +59,10 @@ class Job
         sleep 3
       end
     end
-
+    logger.info "Url... #{url}"
     system_command =
       'java -Xmx3500m -Xms3500m -jar -DmodelIndex="' + "#{identity}" + '" ' +
+      '-DinstanceUrl="' + "#{url}" + '" ' +
       '-DuseLocalFiles=false roas-simulator-1.0.jar'
     error, results, status = Open3.capture3(system_command)
     if error.size < 1
