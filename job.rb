@@ -61,8 +61,8 @@ class Job
     end
 
     system_command =
-      'java -jar -DmodelIndex="' + "#{identity}" + '" ' +
-      '-DuseLocalFiles=false roas-simulator-1.0.jar'
+      'java -Xmx3500m -Xms3500m -jar -DmodelIndex="' + "#{identity}" + '" ' +
+      '-DuseLocalFiles=false -DinstanceUrl="'+url+'"roas-simulator-1.0.jar'
     error, results, status = Open3.capture3(system_command)
     if error.size < 1
       total_run_time = Time.now.to_i - @started_job_time
