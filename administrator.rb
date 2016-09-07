@@ -11,20 +11,20 @@ require 'byebug'
 
 module Administrator
   def boot_time
-    @boot_time ||= Time.now.to_i # comment the code below for development mode
-    # @instance_boot_time ||=
-      # ec2.describe_instances(instance_ids:[self_id]).
-        # reservations[0].instances[0].launch_time.to_i
+    # @boot_time ||= Time.now.to_i # comment the code below for development mode
+    @instance_boot_time ||=
+      ec2.describe_instances(instance_ids:[self_id]).
+        reservations[0].instances[0].launch_time.to_i
   end
 
   def self_id
-    @self_id ||= 'test-id' # comment the below line for development mode
-    # @self_id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id').parsed_response
+    # @self_id ||= 'test-id' # comment the below line for development mode
+    @self_id ||= HTTParty.get('http://169.254.169.254/latest/meta-data/instance-id').parsed_response
   end
 
   def url
-    @url ||= 'https://test-url.com'
-    # @url ||= HTTParty.get('http://169.254.169.254/latest/meta-data/public-hostname').parsed_response
+    # @url ||= 'https://test-url.com'
+    @url ||= HTTParty.get('http://169.254.169.254/latest/meta-data/public-hostname').parsed_response
   end
 
   def identity
@@ -306,9 +306,9 @@ module Administrator
   def send_frequent_status_updates(opts = {})
     sleep_time = opts.delete(:interval) || 5
     while true
-      status = 'Testing' # comment the lines below for development mode
-      # status = ec2.describe_instances(instance_ids: [self_id]).
-        # reservations[0].instances[0].state.name
+      # status = 'Testing' # comment the lines below for development mode
+      status = ec2.describe_instances(instance_ids: [self_id]).
+        reservations[0].instances[0].state.name
       updated = update_message_body(opts)
       logger.info "Status update: #{updated}"
 
